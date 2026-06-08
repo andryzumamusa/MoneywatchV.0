@@ -4873,7 +4873,13 @@ function saveTaxFromUI(){
 var modalType='';
 function openModal(type){
   modalType=type;
-  var secOpts=Object.keys(SEKURITAS).map(function(s){return '<option value="'+s+'"'+(s===activeSekuritas?' selected':'')+'>'+s+' (Beli:'+(SEKURITAS[s].buyFee*100).toFixed(2)+'% Jual:'+(SEKURITAS[s].sellFee*100).toFixed(2)+'%)</option>'}).join('');
+  var secOpts=Object.keys(SEKURITAS).map(function(s){
+    var sf=SEKURITAS[s];
+    var totalBeli=((sf.buyFee+pphBeliFor(s))*100).toFixed(2);
+    var totalJual=((sf.sellFee+pphJualFor(s))*100).toFixed(2);
+    return '<option value="'+s+'"'+(s===activeSekuritas?' selected':'')+'>'+s
+      +' (Beli:'+totalBeli+'% Jual:'+totalJual+'%)</option>';
+  }).join('');
   var tkrOpts=Object.keys(DB).map(function(t){return '<option value="'+t+'">'+t+' — '+DB[t].name+'</option>'}).join('');
 
   if(type==='setor'||type==='tarik'){
@@ -4900,8 +4906,19 @@ function openModal(type){
     el('m-title').style.color='var(--accent)';
     el('m-body').innerHTML='<div style="margin-bottom:12px"><select class="finput fsel" id="mf-sec-choose">'+Object.keys(SEKURITAS).map(function(s){return '<option value="'+s+'"'+(s===activeSekuritas?' selected':'')+'>'+s+'</option>'}).join('')+'</select></div><div id="sec-fee-preview"></div><div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end"><button class="btn btn-ghost" onclick="closeModal()">Batal</button><button class="btn btn-blue" onclick="saveSecuritas()">Simpan</button></div>';
     function updateSecPreview(){
-      var s=el('mf-sec-choose').value;var sf=SEKURITAS[s];
-      el('sec-fee-preview').innerHTML='<div class="taxbox"><div class="taxrow"><span>Komisi Beli</span><span class="mono amb">'+(sf.buyFee*100).toFixed(2)+'%</span></div><div class="taxrow"><span>Komisi Jual</span><span class="mono amb">'+(sf.sellFee*100).toFixed(2)+'%</span></div><div class="taxrow"><span>PPh Penjualan</span><span class="mono dn">0,10% (Final)</span></div></div>';
+      var s=el('mf-sec-choose').value; var sf=SEKURITAS[s];
+      var pphB=pphBeliFor(s); var pphJ=pphJualFor(s);
+      var totB=((sf.buyFee+pphB)*100).toFixed(2);
+      var totJ=((sf.sellFee+pphJ)*100).toFixed(2);
+      el('sec-fee-preview').innerHTML=
+        '<div class="taxbox">'
+        +'<div class="taxrow"><span>Komisi Beli</span><span class="mono amb">'+(sf.buyFee*100).toFixed(2)+'%</span></div>'
+        +'<div class="taxrow"><span>PPh Beli</span><span class="mono dn">'+(pphB*100).toFixed(2)+'%</span></div>'
+        +'<div class="taxrow tot"><span>Total Biaya Beli</span><span class="mono amb">'+totB+'%</span></div>'
+        +'<div class="taxrow" style="margin-top:6px"><span>Komisi Jual</span><span class="mono amb">'+(sf.sellFee*100).toFixed(2)+'%</span></div>'
+        +'<div class="taxrow"><span>PPh Jual</span><span class="mono dn">'+(pphJ*100).toFixed(2)+'%</span></div>'
+        +'<div class="taxrow tot"><span>Total Biaya Jual</span><span class="mono dn">'+totJ+'%</span></div>'
+        +'</div>';
     }
     el('mf-sec-choose').onchange=updateSecPreview;
     setTimeout(updateSecPreview,30);
@@ -5594,7 +5611,14 @@ function updateAmtPreview(){
   el('amt-preview').textContent='Rp '+fmt(v);
 }
 
-function onSecChange(){txCalcLive()}
+function onSecChange(){
+  // Refresh PPh label di form sesuai sekuritas baru
+  var secName=el('mf-sec')&&el('mf-sec').value||activeSekuritas;
+  var isBuy=modalType==='buy';
+  var pph=isBuy?pphBeliFor(secName):pphJualFor(secName);
+  if(el('mc-t-lbl')) el('mc-t-lbl').textContent='PPh '+(isBuy?'Beli':'Jual')+' ('+(pph*100).toFixed(2)+'%)';
+  txCalcLive();
+}
 function prefillPrice(){
   var t=el('mf-ticker').value;
   if(t&&(prices[t]||DB[t])){el('mf-price').value=prices[t]||DB[t].base||0;txCalcLive();}
