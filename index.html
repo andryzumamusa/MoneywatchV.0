@@ -6777,15 +6777,77 @@ function setPeriod(btn,n){
 }
 
 // ============================================================
+// IMPORT PORTOFOLIO DARI DATA REAL (sekali jalan)
+// ============================================================
+var PORTO_DATA = [
+  {ticker:'GGRM', lot:6,   price:67303, sector:'Konsumer Non-Primer'},
+  {ticker:'BBNI', lot:72,  price:5268,  sector:'Keuangan'},
+  {ticker:'CPRI', lot:90,  price:123,   sector:'Properti'},
+  {ticker:'BBCA', lot:59,  price:8400,  sector:'Keuangan'},
+  {ticker:'BMRI', lot:62,  price:6285,  sector:'Keuangan'},
+  {ticker:'BBRI', lot:215, price:4880,  sector:'Keuangan'},
+  {ticker:'ERAA', lot:400, price:552,   sector:'Konsumer Non-Primer'},
+  {ticker:'UNVR', lot:60,  price:5757,  sector:'Konsumer Primer'},
+  {ticker:'ADRO', lot:102, price:3485,  sector:'Energi'},
+  {ticker:'SIDO', lot:320, price:653,   sector:'Kesehatan'},
+  {ticker:'PGEO', lot:813, price:1527,  sector:'Infrastruktur'},
+  {ticker:'PMMP', lot:38,  price:265,   sector:'Konsumer Primer'},
+  {ticker:'AADI', lot:4,   price:11095, sector:'Energi'},
+  {ticker:'BUMI', lot:503, price:364,   sector:'Energi'},
+  {ticker:'SMDR', lot:690, price:443,   sector:'Infrastruktur'},
+  {ticker:'CDIA', lot:188, price:2015,  sector:'Infrastruktur'},
+  {ticker:'RAJA', lot:30,  price:5803,  sector:'Energi'},
+  {ticker:'ADMR', lot:195, price:2084,  sector:'Energi'},
+  {ticker:'DEWA', lot:75,  price:532,   sector:'Energi'},
+  {ticker:'PTRO', lot:5,   price:5619,  sector:'Energi'},
+  {ticker:'MBMA', lot:87,  price:805,   sector:'Barang Baku'},
+  {ticker:'WIFI', lot:57,  price:3406,  sector:'Konsumer Non-Primer'},
+  {ticker:'ARCI', lot:223, price:1939,  sector:'Barang Baku'},
+];
+
+function importPortfolioData(){
+  if(localStorage.getItem('porto_imported_v1')) return; // sudah pernah diimpor
+  var today2 = new Date().toISOString().slice(0,10);
+  var sec = 'Stockbit';
+  // Pastikan semua ticker ada di DB dengan sektor yang benar
+  PORTO_DATA.forEach(function(p){
+    DB[p.ticker]={name:p.ticker, base:p.price, sector:p.sector||'Lainnya', beta:1.0};
+    prices[p.ticker] = p.price;
+  });
+  // Tambahkan transaksi BUY — bypass saveData per-item untuk efisiensi
+  var _origSave = window._txNoSave; // flag sementara
+  PORTO_DATA.forEach(function(p){
+    var isBuy=true;
+    var gross=p.lot*100*p.price;
+    var c=calcTxComponents(gross,isBuy,sec);
+    var txId=nextTxId++;
+    transactions.push({id:txId,date:today2,type:'BUY',ticker:p.ticker,lot:p.lot,price:p.price,
+      gross:gross,komisi:c.komisi,ppn:c.ppn,levy:c.levy,pph:c.pph,
+      tax:c.ppn+c.levy+c.pph,net:c.net,sekuritas:sec});
+    rdnBalance+=-c.net;
+    rdnMutations.push({id:nextRdnId++,date:today2,type:'BUY',
+      ket:'Beli '+p.lot+' lot '+p.ticker+' @ Rp '+fmt(p.price),
+      amount:-c.net,balance:rdnBalance,sekuritas:sec,linkedTxId:txId});
+  });
+  localStorage.setItem('porto_imported_v1','1');
+  saveData();
+  console.log('✅ Porto import selesai: '+PORTO_DATA.length+' emiten, total lot: '+
+    PORTO_DATA.reduce(function(a,p){return a+p.lot;},0));
+}
+
+// ============================================================
 // INIT
 // ============================================================
 document.addEventListener('DOMContentLoaded',function(){
   var hasData = loadData();
   normalizeSekLabels();
-  if(typeof aiUpdateKeyBtn==='function') aiUpdateKeyBtn(); // standarisasi nama sekuritas (IPOT→Indo Premier, POEMS→Phillip Sekuritas, SBIT/Stockbit (Bibit)→Stockbit)
+  if(typeof aiUpdateKeyBtn==='function') aiUpdateKeyBtn();
   loadTaxSettings();
   loadCashAccounts();
   loadHiddenMetrics();
+
+  // ── Import portofolio real (sekali jalan, jika belum ada data) ──
+  importPortfolioData();
 
   // ── Mulai kosong — semua transaksi diisi manual ──
   // Selalu pastikan DB & RD_DB terisi dari XLSX (hanya metadata, bukan transaksi)
