@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.0.0/dist/tabler-icons.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -781,7 +782,7 @@ body::before{content:'';position:fixed;inset:0;background:var(--scanline);pointe
     <div style="display:flex;gap:8px">
       <button class="btn btn-green" id="btn-beli">+ Beli Saham</button>
       <button class="btn btn-red" id="btn-jual">− Jual Saham</button>
-      <button class="btn btn-ghost" onclick="importMutasiUI()" style="border-color:rgba(0,200,255,.3);color:var(--accent)" title="Impor transaksi historis dari Mutasi_Final.xlsx">⬇ Impor Mutasi</button>
+      <button class="btn btn-ghost" onclick="openXlsModal('saham')" style="border-color:rgba(0,200,255,.3);color:var(--accent)" title="Impor transaksi saham dari file XLS/XLSX">⬆ Impor XLS</button>
     </div>
   </div>
   <div class="row4">
@@ -867,7 +868,7 @@ body::before{content:'';position:fixed;inset:0;background:var(--scanline);pointe
       <button class="btn btn-red btn-xs" onclick="deleteSelectedDiv()" id="div-del-sel-btn" style="display:none">🗑 Hapus Terpilih</button>
       <button class="btn btn-red btn-xs" onclick="clearAllDiv()">🗑 Hapus Semua</button>
       <button class="btn btn-blue" id="btn-div">+ Catat Dividen</button>
-      <button class="btn btn-ghost" onclick="importDividendsUI()" style="border-color:rgba(167,139,250,.35);color:var(--purple)" title="Impor dividen historis dari lampiran (tidak menambah RDN)">⬇ Impor Dividen Lampiran</button>
+      <button class="btn btn-ghost" onclick="openXlsModal('saham')" style="border-color:rgba(167,139,250,.35);color:var(--purple)" title="Impor data dari file XLS/XLSX">⬆ Impor XLS</button>
     </div>
   </div>
   <div class="row4">
@@ -1306,6 +1307,7 @@ body::before{content:'';position:fixed;inset:0;background:var(--scanline);pointe
     <div style="display:flex;gap:8px">
       <button class="btn btn-blue" onclick="openCryptoModal('buy')">+ Beli Crypto</button>
       <button class="btn btn-red" onclick="openCryptoModal('sell')">− Jual Crypto</button>
+      <button class="btn btn-ghost" onclick="openXlsModal('crypto')" style="border-color:rgba(247,147,26,.35);color:#f7931a">⬆ Impor XLS</button>
     </div>
   </div>
     <!-- Cash widget crypto -->
@@ -1370,6 +1372,7 @@ body::before{content:'';position:fixed;inset:0;background:var(--scanline);pointe
     <div style="display:flex;gap:8px">
       <button class="btn btn-blue" onclick="openEtfModal('buy')">+ Beli ETF</button>
       <button class="btn btn-red" onclick="openEtfModal('sell')">− Jual ETF</button>
+      <button class="btn btn-ghost" onclick="openXlsModal('etf')" style="border-color:rgba(0,200,255,.3);color:var(--accent)">⬆ Impor XLS</button>
     </div>
   </div>
     <!-- Cash widget etf -->
@@ -1438,10 +1441,13 @@ body::before{content:'';position:fixed;inset:0;background:var(--scanline);pointe
   <div style="background:rgba(255,193,7,.07);border:1px solid rgba(255,193,7,.25);border-radius:10px;padding:12px 16px;margin-bottom:12px;display:flex;align-items:center;gap:12px">
     <span style="font-size:22px">📋</span>
     <div>
-      <div style="font-size:12px;font-weight:700;color:var(--amber)">Semua reksa dana sudah dicairkan</div>
-      <div style="font-size:11px;color:var(--text2);margin-top:2px">Data berikut adalah <strong>riwayat historis</strong> transaksi reksa dana dari 3 platform (BIBIT, IPOT, POEMS). Total gain kumulatif: <strong style="color:var(--green)">Rp 19.626.491</strong>. Gunakan tombol + Beli RD untuk mulai mencatat posisi aktif baru.</div>
+      <div style="font-size:12px;font-weight:700;color:var(--amber)">Reksa Dana — input manual</div>
+      <div style="font-size:11px;color:var(--text2);margin-top:2px">Semua data transaksi reksa dana diisi manual atau diimpor dari file XLS/XLSX. Gunakan tombol + Beli RD untuk mencatat posisi aktif baru, atau impor langsung dari file.</div>
     </div>
-    <button class="btn btn-green btn-sm" onclick="openRdModal('beli')" style="flex-shrink:0">+ Beli RD Baru</button>
+    <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
+      <button class="btn btn-green btn-sm" onclick="openRdModal('beli')">+ Beli RD Baru</button>
+      <button class="btn btn-ghost btn-xs" onclick="openXlsModal('rd')">⬆ Impor XLS</button>
+    </div>
   </div>
 
   <!-- Summary metrics -->
@@ -1516,13 +1522,7 @@ body::before{content:'';position:fixed;inset:0;background:var(--scanline);pointe
   <!-- History table -->
   <div class="card">
     <div class="cheader">
-      <span class="ctitle">Riwayat Historis 2018–2026</span>
-      <div style="display:flex;gap:5px">
-        <button class="btn btn-ghost btn-xs" onclick="rdFilterPlatform('all',this)" style="color:var(--accent)">Semua</button>
-        <button class="btn btn-ghost btn-xs" onclick="rdFilterPlatform('BIBIT',this)">BIBIT</button>
-        <button class="btn btn-ghost btn-xs" onclick="rdFilterPlatform('IPOT',this)">IPOT</button>
-        <button class="btn btn-ghost btn-xs" onclick="rdFilterPlatform('POEMS',this)">POEMS</button>
-      </div>
+      <span class="ctitle">Riwayat Transaksi Reksa Dana</span>
     </div>
     <div style="overflow-x:auto">
       <table class="tbl">
@@ -2085,6 +2085,42 @@ body::before{content:'';position:fixed;inset:0;background:var(--scanline);pointe
   </div>
 </div>
 
+<!-- IMPORT XLS MODAL -->
+<div id="xls-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:210;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
+  <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:20px;width:640px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.5)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div>
+        <div style="font-size:15px;font-weight:700;color:var(--accent)">⬆ Impor Data dari XLS/XLSX</div>
+        <div style="font-size:11px;color:var(--text3);font-family:'IBM Plex Mono',monospace;margin-top:2px">Upload file Excel untuk sinkron otomatis ke jurnal</div>
+      </div>
+      <button onclick="closeXlsModal()" style="background:none;border:none;color:var(--text3);font-size:20px;cursor:pointer;line-height:1;padding:4px">✕</button>
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
+      <button class="btn btn-ghost btn-xs xls-tab-btn" data-type="saham" onclick="xlsSwitchType('saham')" style="color:var(--accent)">📈 Saham</button>
+      <button class="btn btn-ghost btn-xs xls-tab-btn" data-type="crypto" onclick="xlsSwitchType('crypto')">🪙 Crypto</button>
+      <button class="btn btn-ghost btn-xs xls-tab-btn" data-type="etf" onclick="xlsSwitchType('etf')">📊 ETF</button>
+      <button class="btn btn-ghost btn-xs xls-tab-btn" data-type="rd" onclick="xlsSwitchType('rd')">🏦 Reksa Dana</button>
+    </div>
+    <div id="xls-desc" style="font-size:11px;color:var(--text2);margin-bottom:10px;line-height:1.6"></div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
+      <button class="btn btn-ghost btn-xs" onclick="xlsDownloadTemplate()">⬇ Unduh Template Kosong</button>
+      <label class="btn btn-blue btn-xs" style="cursor:pointer">
+        ⬆ Pilih File XLS/XLSX
+        <input type="file" id="xls-file-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="xlsHandleFile(event)">
+      </label>
+      <span id="xls-file-name" style="font-size:10px;color:var(--text3);font-family:'IBM Plex Mono',monospace"></span>
+    </div>
+    <div id="xls-preview" style="max-height:280px;overflow:auto;border:1px solid var(--border2);border-radius:8px;display:none;margin-bottom:12px">
+      <table class="tbl" id="xls-preview-table" style="font-size:10px"></table>
+    </div>
+    <div id="xls-warnings" style="font-size:11px;color:var(--amber);margin-bottom:10px"></div>
+    <div style="display:flex;justify-content:flex-end;gap:8px">
+      <button class="btn btn-ghost btn-xs" onclick="closeXlsModal()">Batal</button>
+      <button class="btn btn-green" id="xls-sync-btn" onclick="xlsSync()" disabled>✓ Sinkron ke Jurnal</button>
+    </div>
+  </div>
+</div>
+
 </div><!-- /app -->
 
 <!-- MODAL -->
@@ -2221,7 +2257,7 @@ var DB = {
   'BBRI':{name:'Bank Rakyat Indonesia',base:4950,sector:'Keuangan',beta:0.91},
   'BMRI':{name:'Bank Mandiri',base:5650,sector:'Keuangan',beta:0.88},
   'BBNI':{name:'Bank Negara Indonesia',base:4820,sector:'Keuangan',beta:0.95},
-  'TLKM':{name:'Telkom Indonesia',base:3780,sector:'Infrastruktur',beta:0.72},
+  'TLKM':{name:'Telkom Indonesia',base:3150,sector:'Infrastruktur',beta:0.72},
   'EXCL':{name:'XL Axiata',base:2140,sector:'Infrastruktur',beta:0.85},
   'ASII':{name:'Astra International',base:4720,sector:'Perindustrian',beta:1.05},
   'INDF':{name:'Indofood Sukses Makmur',base:6250,sector:'Konsumer Primer',beta:0.78},
@@ -3245,7 +3281,7 @@ function loadData(){
     cryptoTx       = d.cryptoTx       || [];
     etfTx          = d.etfTx          || [];
     // rdTx: selalu kosong — tidak ada reksa dana aktif dari XLSX
-    // Hanya simpan jika user memang input sendiri (bukan dari loadSampleRd lama)
+    // rdTx: hanya simpan entri yang diisi manual oleh user
     rdTx           = (d.rdTx || []).filter(function(tx){ return tx._userInput === true; });
     nextCryptoId   = d.nextCryptoId   || (cryptoTx.length + 1);
     nextEtfId      = d.nextEtfId      || (etfTx.length + 1);
@@ -3425,181 +3461,6 @@ function rnd(b,p){p=p||0.025;return b*(1+(Math.random()*p*2-p))}
 function today(){return new Date().toISOString().split('T')[0]}
 function el(id){return document.getElementById(id)}
 function dAgo(n){var d=new Date();d.setDate(d.getDate()-n);return d.toISOString().split('T')[0]}
-
-// ============================================================
-// DATA REAL — JURNAL__1_.xlsx (31 Mei 2026)
-// ============================================================
-var XLSX_DATA = {
-  total_equity:  771315962.3,
-  nett_value:    492485335.9,
-  change_rp:    -306603692.4,
-  change_pct:   -0.3975,
-  cash:           27773066.0,
-  equity_val:    736808794.7,
-  crypto_etf:     1252740.0,
-  fund_alloc:    19626491.0,
-  p2p:            2500000.0,
-  cap_gain_2026:  2428697.87,
-  dividend_2026: 22852300.0,
-  kurs_usd:       17823.65,
-  core_long:    510017995.4,
-  swing_trade:  174215694.8,
-  fast_trade:     9336915.6,
-  sectoral:{
-    'Financials':231386788.5,'Energy':123103743.6,'Infrastructures':162069750,
-    'Consumer Non-Cyclicals':75929424.8,'Basic Materials':50239663.9,
-    'Consumer Cyclicals':41503172.06,'Healthcare':20887110.25,
-    'Transportation':30583044,'Properties':1106097.6,'Technology':0,'Industrials':0
-  },
-  stocks:[
-    {code:'BBRI',sector:'Financials',        tradeType:'Core Long',  amount:104925727,shares:21500,lot:215,avg:4880,  gl:-41500727,gl_pct:-39.55,price:2950},
-    {code:'PGEO',sector:'Infrastructures',   tradeType:'Core Long',  amount:124183128,shares:81300,lot:813,avg:1527,  gl:-51419628,gl_pct:-41.41,price:895},
-    {code:'BBCA',sector:'Financials',        tradeType:'Core Long',  amount: 49562128,shares:5900, lot: 59,avg:8400,  gl:-15932128,gl_pct:-32.15,price:5700},
-    {code:'BMRI',sector:'Financials',        tradeType:'Core Long',  amount: 38969784,shares:6200, lot: 62,avg:6285,  gl:-13673784,gl_pct:-35.09,price:4080},
-    {code:'ADMR',sector:'Energy',            tradeType:'Core Long',  amount: 40637015,shares:19500,lot:195,avg:2084,  gl:-10802015,gl_pct:-26.58,price:1530},
-    {code:'ARCI',sector:'Basic Materials',   tradeType:'Swing Trade',amount: 43238189,shares:22300,lot:223,avg:1939,  gl:-16143689,gl_pct:-37.34,price:1215},
-    {code:'BBNI',sector:'Financials',        tradeType:'Core Long',  amount: 37929150,shares:7200, lot: 72,avg:5268,  gl:-11289150,gl_pct:-29.76,price:3700},
-    {code:'GGRM',sector:'Consumer Non-Cyclicals',tradeType:'Core Long',amount:40381580,shares:600,  lot:  6,avg:67303,gl:-30181580,gl_pct:-74.74,price:17000},
-    {code:'CDIA',sector:'Infrastructures',   tradeType:'Core Long',  amount: 37886622,shares:18800,lot:188,avg:2015,  gl:-21906622,gl_pct:-57.82,price:850},
-    {code:'ADRO',sector:'Energy',            tradeType:'Core Long',  amount: 35542862,shares:10200,lot:102,avg:3485,  gl:-12082862,gl_pct:-34.00,price:2300},
-    {code:'UNVR',sector:'Consumer Non-Cyclicals',tradeType:'Swing Trade',amount:34540561,shares:6000,lot:60,avg:5757, gl:-24280561,gl_pct:-70.30,price:1710},
-    {code:'SMDR',sector:'Transportation & Logistic',tradeType:'Swing Trade',amount:30583044,shares:69000,lot:690,avg:443,gl:-9883044,gl_pct:-32.32,price:300},
-    {code:'SIDO',sector:'Healthcare',        tradeType:'Swing Trade',amount: 20887110,shares:32000,lot:320,avg:653,   gl:-8599110, gl_pct:-41.17,price:384},
-    {code:'WIFI',sector:'Consumer Cyclicals',tradeType:'Swing Trade',amount: 19415886,shares:5700, lot: 57,avg:3406,  gl:-7730886, gl_pct:-39.82,price:2050},
-    {code:'BUMI',sector:'Energy',            tradeType:'Swing Trade',amount: 18301684,shares:50300,lot:503,avg:364,   gl:-9851284, gl_pct:-53.83,price:168},
-    {code:'RAJA',sector:'Energy',            tradeType:'Swing Trade',amount: 17408780,shares:3000, lot: 30,avg:5803,  gl:-6188780, gl_pct:-35.55,price:3740},
-    {code:'ERAA',sector:'Consumer Cyclicals',tradeType:'Swing Trade',amount: 22087286,shares:40000,lot:400,avg:552,   gl:-7127286, gl_pct:-32.27,price:374},
-    {code:'MBMA',sector:'Basic Materials',   tradeType:'Swing Trade',amount:  7001475,shares:8700, lot: 87,avg:805,   gl:-2842875, gl_pct:-40.60,price:478},
-    {code:'AADI',sector:'Energy',            tradeType:'Fast Trade', amount:  4437974,shares:400,  lot:  4,avg:11095, gl:-1077974, gl_pct:-24.29,price:8400},
-    {code:'DEWA',sector:'Energy',            tradeType:'Swing Trade',amount:  3989869,shares:7500, lot: 75,avg:532,   gl:-1484869, gl_pct:-37.22,price:334},
-    {code:'PTRO',sector:'Energy',            tradeType:'Fast Trade', amount:  2785560,shares:500,  lot:  5,avg:5571,  gl:-450560,  gl_pct:-16.17,price:4670},
-    {code:'PMMP',sector:'Consumer Non-Cyclicals',tradeType:'Fast Trade',amount:1007284,shares:3800,lot: 38,avg:265,   gl:-817284,  gl_pct:-81.14,price:50},
-    {code:'CPRI',sector:'Properties',        tradeType:'Fast Trade', amount:  1106098,shares:9000, lot: 90,avg:123,   gl:-656098,  gl_pct:-59.32,price:50},
-  ],
-  crypto:[
-    // BTC: qty=0.00076113, avg_beli=1,657,633,458 IDR/BTC, modal=1,261,675 IDR
-    // Price pasar saat ini dari XLSX = 1,306,967,438 IDR (simulasi fluktuasi dari ini)
-    {code:'BTC', name:'Bitcoin', price_idr:1306967438, lot:0.00076113,
-     avg_idr:1657633458, modal:1261675, mv:994772, gl:-266903, gl_pct:-21.15},
-    // ADA: qty=139.3026 unit, avg_beli=7,115 IDR/ADA, modal=991,138 IDR
-    // Price pasar dari XLSX = 4,143 IDR per ADA
-    {code:'ADA', name:'Cardano', price_idr:4143, lot:139.3026,
-     avg_idr:7115, modal:991138, mv:577101, gl:-414037, gl_pct:-41.77},
-  ],
-  // ── REKSA DANA: SEMUA SUDAH DICAIRKAN (History 2018-2026) ──
-  // fund_alloc = total gain kumulatif dari Dashboard (bukan nilai aktif)
-  // Posisi aktif saat ini = 0 (Fund kolom di Dashboard = 0.0)
-  fund_aktif: 0,
-  fund_gain_total: 19626491, // total margin/gain dari Dashboard R8
-  funds:[
-    // BIBIT Platform (TOTAL G/L = Rp 15.136.889)
-    {name:'Sucorinvest Sharia Money Market',   category:'Pasar Uang',     account:'BIBIT', gl:317241,    gl_pct:2.49,  status:'DICAIRKAN'},
-    {name:'Manulife Obligasi Negara II Kl.A',  category:'Pendapatan Tetap',account:'BIBIT',gl:87985,     gl_pct:0.69,  status:'DICAIRKAN'},
-    {name:'Manulife Obligasi Unggulan Kl.A',   category:'Pendapatan Tetap',account:'BIBIT',gl:866921,    gl_pct:6.82,  status:'DICAIRKAN'},
-    {name:'Manulife Dana Kas II Kelas A',       category:'Pasar Uang',     account:'BIBIT',gl:275589,    gl_pct:2.17,  status:'DICAIRKAN'},
-    {name:'Sucorinvest Citra Dana Berimbang',   category:'Campuran',       account:'BIBIT',gl:723132,    gl_pct:5.69,  status:'DICAIRKAN'},
-    {name:'Sucorinvest Stable Fund',            category:'Pendapatan Tetap',account:'BIBIT',gl:595051,   gl_pct:4.68,  status:'DICAIRKAN'},
-    {name:'Sucorinvest Money Market Fund',      category:'Pasar Uang',     account:'BIBIT',gl:169180,    gl_pct:1.33,  status:'DICAIRKAN'},
-    {name:'ABF Indonesia Bond Index Fund',      category:'Pendapatan Tetap',account:'BIBIT',gl:2314686,  gl_pct:18.20, status:'DICAIRKAN'},
-    {name:'Schroder Dana Mantap Plus II',       category:'Pendapatan Tetap',account:'BIBIT',gl:222079,   gl_pct:1.75,  status:'DICAIRKAN'},
-    {name:'BNI-AM Indeks IDX30',                category:'Saham',          account:'BIBIT',gl:44799,     gl_pct:0.35,  status:'DICAIRKAN'},
-    {name:'BNI-AM Dana Lancar Syariah',         category:'Pasar Uang',     account:'BIBIT',gl:472661,    gl_pct:3.72,  status:'DICAIRKAN'},
-    {name:'Batavia Dana Kas Maxima',            category:'Pasar Uang',     account:'BIBIT',gl:1752356,   gl_pct:13.78, status:'DICAIRKAN'},
-    {name:'Mandiri Investa Dana Syariah',       category:'Pasar Uang',     account:'BIBIT',gl:41491,     gl_pct:0.33,  status:'DICAIRKAN'},
-    {name:'TRIM Kas 2',                         category:'Pasar Uang',     account:'BIBIT',gl:2798367,   gl_pct:22.00, status:'DICAIRKAN'},
-    {name:'Grow SRI KEHATI Kelas O',            category:'Saham',          account:'BIBIT',gl:1000391,   gl_pct:7.87,  status:'DICAIRKAN'},
-    {name:'Grow Saham Indonesia Plus Kelas O',  category:'Saham',          account:'BIBIT',gl:394273,    gl_pct:3.10,  status:'DICAIRKAN'},
-    {name:'BNP Paribas SRI KEHATI',             category:'Saham',          account:'BIBIT',gl:-3126,     gl_pct:-0.02, status:'DICAIRKAN'},
-    {name:'BNI-AM Short Duration Bonds R1',     category:'Pendapatan Tetap',account:'BIBIT',gl:-25326,   gl_pct:-0.20, status:'DICAIRKAN'},
-    {name:'Bahana Dana Likuid',                 category:'Pendapatan Tetap',account:'BIBIT',gl:257520,   gl_pct:2.02,  status:'DICAIRKAN'},
-    // IPOT Platform (TOTAL G/L = Rp 3.515.640)
-    {name:'Danamas Stabil',                     category:'Pendapatan Tetap',account:'IPOT', gl:19120,    gl_pct:0.54,  status:'DICAIRKAN'},
-    {name:'Mandiri Investa Pasar Uang',         category:'Pasar Uang',     account:'IPOT', gl:18606,    gl_pct:0.53,  status:'DICAIRKAN'},
-    {name:'Sucorinvest Equity Fund',            category:'Saham',          account:'IPOT', gl:-467903,  gl_pct:-13.31,status:'DICAIRKAN'},
-    {name:'Sucorinvest Money Market Fund',      category:'Pasar Uang',     account:'IPOT', gl:158272,   gl_pct:4.50,  status:'DICAIRKAN'},
-    {name:'BNI-AM Dana Pendapatan Tetap',       category:'Pendapatan Tetap',account:'IPOT',gl:45342,    gl_pct:1.29,  status:'DICAIRKAN'},
-    {name:'Premier Pasar Uang II',              category:'Pasar Uang',     account:'IPOT', gl:3502108,  gl_pct:99.62, status:'DICAIRKAN'},
-    {name:'Trim Kas 2',                         category:'Pasar Uang',     account:'IPOT', gl:288854,   gl_pct:8.22,  status:'DICAIRKAN'},
-    {name:'Batavia Dana Saham',                 category:'Saham',          account:'IPOT', gl:-48759,   gl_pct:-1.39, status:'DICAIRKAN'},
-    // POEMS Platform (TOTAL G/L = Rp 1.697.094)
-    {name:'Avrist Ada Saham Blue Safir',        category:'Saham',          account:'POEMS',gl:1013,     gl_pct:0.06,  status:'DICAIRKAN'},
-    {name:'Batavia Dana Saham',                 category:'Saham',          account:'POEMS',gl:108761,   gl_pct:6.41,  status:'DICAIRKAN'},
-    {name:'TRIM Syariah Saham',                 category:'Saham',          account:'POEMS',gl:197313,   gl_pct:11.63, status:'DICAIRKAN'},
-    {name:'Saylendra Dana Kas',                 category:'Pasar Uang',     account:'POEMS',gl:1098725,  gl_pct:64.74, status:'DICAIRKAN'},
-    {name:'Manulife Dana Kas II Kelas A',       category:'Pasar Uang',     account:'POEMS',gl:5384,     gl_pct:0.32,  status:'DICAIRKAN'},
-    {name:'RHB Fixed Income Fund 2',            category:'Pendapatan Tetap',account:'POEMS',gl:32185,   gl_pct:1.90,  status:'DICAIRKAN'},
-    {name:'Kiwoom Indonesia Bond Plus Fund',    category:'Pendapatan Tetap',account:'POEMS',gl:-1250,   gl_pct:-0.07, status:'DICAIRKAN'},
-    {name:'Eastspring Investments IDR HG',      category:'Pendapatan Tetap',account:'POEMS',gl:9737,    gl_pct:0.57,  status:'DICAIRKAN'},
-    {name:'HPAM Ultima Money Market',           category:'Pasar Uang',     account:'POEMS',gl:3865,     gl_pct:0.23,  status:'DICAIRKAN'},
-    {name:'Phillip Money Market Fund',          category:'Pasar Uang',     account:'POEMS',gl:245861,   gl_pct:14.49, status:'DICAIRKAN'},
-    {name:'TRIM Kapital Plus',                  category:'Saham',          account:'POEMS',gl:-4500,    gl_pct:-0.27, status:'DICAIRKAN'},
-  ],
-  // Breakdown gain per kategori (dari Margin Recap)
-  fund_margin_by_cat:{
-    'BIBIT':  {Saham:1609363,  FixedIncome:6705268, MoneyMarket:6099126},
-    'IPOT':   {Saham:-516662,  FixedIncome:64462,   MoneyMarket:3967840},
-    'POEMS':  {Saham:302587,   FixedIncome:40672,   MoneyMarket:1353835},
-  },
-  dividends:[
-    {code:'ADRO',avg_per_year:3579967, total:17899836},
-    {code:'BBRI',avg_per_year:2805061, total:14025307},
-    {code:'BMRI',avg_per_year:2708167, total:5416335},
-    {code:'PTBA',avg_per_year:1431025, total:5724098},
-    {code:'PGEO',avg_per_year:1733878, total:5201633},
-    {code:'TLKM',avg_per_year:833698,  total:5002190},
-    {code:'BBNI',avg_per_year:1549016, total:4647047},
-    {code:'GGRM',avg_per_year:942504,  total:4712520},
-    {code:'ASII',avg_per_year:640148,  total:3840889},
-    {code:'UNVR',avg_per_year:612958,  total:3677750},
-    {code:'BBCA',avg_per_year:1015700, total:2031400},
-    {code:'SIDO',avg_per_year:567875,  total:2271500},
-    {code:'ERAA',avg_per_year:520100,  total:2600500},
-    {code:'DMAS',avg_per_year:617138,  total:2468550},
-    {code:'ADMR',avg_per_year:961780,  total:961780},
-    {code:'BJTM',avg_per_year:374332,  total:748663},
-    {code:'PWON',avg_per_year:137767,  total:413300},
-    {code:'AKRA',avg_per_year:225000,  total:225000},
-    {code:'ANTM',avg_per_year:135506,  total:406519},
-    {code:'MTEL',avg_per_year:156887,  total:313774},
-    {code:'TOWR',avg_per_year:124634,  total:498538},
-  ],
-  dividend_total: 83991374,
-};
-
-// ============================================================
-// LOAD DATA REAL KE STATE
-// ============================================================
-function loadSample(){
-  // RDN
-  addRdn('2026-01-01','SETOR','Modal investasi awal 2026', XLSX_DATA.total_equity,'Mirae Asset');
-  addRdn('2026-05-31','TARIK','Mark-to-market unrealized loss', XLSX_DATA.change_rp,'Mirae Asset');
-  addRdn('2026-05-31','SETOR','Penerimaan dividen 2026',XLSX_DATA.dividend_2026,'Mirae Asset');
-
-  // Extend DB dengan semua saham real
-  var sectorMap = {
-    'Financials':'Keuangan','Energy':'Energi','Infrastructures':'Infrastruktur',
-    'Consumer Non-Cyclicals':'Konsumer Primer','Basic Materials':'Barang Baku',
-    'Consumer Cyclicals':'Konsumer Non-Primer','Healthcare':'Kesehatan',
-    'Transportation & Logistic':'Infrastruktur','Properties':'Properti',
-  };
-  XLSX_DATA.stocks.forEach(function(s){
-    DB[s.code] = {name:s.code, base:s.price||s.avg||100, sector:sectorMap[s.sector]||s.sector||'Lainnya', beta:1.0};
-    prices[s.code] = s.price||s.avg||100;
-  });
-
-  // Transactions (satu BUY per posisi, dengan harga avg real)
-  XLSX_DATA.stocks.forEach(function(s, i){
-    addTx(dAgo(300-i*5),'BUY',s.code,s.lot||1,s.avg||100,'Mirae Asset');
-  });
-
-  // Dividends real
-  XLSX_DATA.dividends.slice(0,10).forEach(function(d, i){
-    var stk = XLSX_DATA.stocks.find(function(s){return s.code===d.code});
-    if(stk && stk.shares>0 && d.avg_per_year>0){
-      addDiv(dAgo(150-i*14), d.code, stk.shares, Math.round(d.avg_per_year/stk.shares)||10);
-    }
-  });
-}
 
 
 // ── Deteksi sekuritas aktif dari transaksi portofolio ──
@@ -3872,7 +3733,12 @@ function fhFetchStocks(){
   var porto = getPortfolio();
   var codes = porto.length > 0
     ? porto.map(function(p){ return p.ticker; })
-    : XLSX_DATA.stocks.slice(0,10).map(function(s){ return s.code; });
+    : [];
+  // Sertakan ticker yang sedang dilihat di Candlestick/Flowscan + chip umum,
+  // supaya analisa tidak pakai DB[t].base yang bisa basi
+  var extra = ['ADMR','BBCA','BBRI','ADRO','PGEO','BRMS'];
+  if(typeof CD_TICKER!=='undefined' && CD_TICKER) extra.unshift(CD_TICKER);
+  extra.forEach(function(t){ if(codes.indexOf(t)<0) codes.push(t); });
   if(!codes.length) return;
   var batchSize = 2;
   var idx = FH._stockIdx||0;
@@ -3943,12 +3809,7 @@ function fhStop(){
 // ── Simulasi (fallback) ──
 function updatePrices(){
   Object.keys(DB).forEach(function(t){
-    var realStock = XLSX_DATA.stocks.find(function(s){return s.code===t});
-    if(realStock && realStock.price>0){
-      prices[t] = realStock.price * (1 + (Math.random()*0.004-0.002));
-    } else {
-      prices[t] = Math.round(rnd(DB[t].base));
-    }
+    prices[t] = Math.round(rnd(DB[t].base));
   });
   ihsgCur += (Math.random()-.48)*25;
   ihsgCur  = Math.max(ihsgBase*0.92, Math.min(ihsgBase*1.08, ihsgCur));
@@ -4315,8 +4176,8 @@ function renderDashboard(){
   var rdMV      = rdPorto.reduce(function(a,p){return a+p.mv},0);
   var rdCost    = rdPorto.reduce(function(a,p){return a+p.cost},0);
   // Reksa dana: semua sudah dicairkan. Tampilkan gain kumulatif historis jika tidak ada posisi aktif
-  var rdGainHistoris = XLSX_DATA.fund_gain_total || 0;
-  var rdDisplayVal   = rdMV > 0 ? rdMV : 0; // nilai aktif = 0 karena semua dicairkan
+  var rdGainHistoris = 0;
+  var rdDisplayVal   = rdMV > 0 ? rdMV : 0; // nilai aktif reksa dana
   var rdn       = calcRdnBalance();
 
   // ── AUM = semua aset investasi + kas RDN ──
@@ -5506,56 +5367,6 @@ var nextEtfId = 1;
 var nextRdId = 1;
 
 // ============================================================
-// LOAD DATA REAL — CRYPTO, ETF, REKSA DANA
-// ============================================================
-function loadSampleCrypto(){
-  usdIdr = XLSX_DATA.kurs_usd || 17823.65;
-  XLSX_DATA.crypto.forEach(function(c){
-    if(c.lot > 0){
-      // Gunakan avg_idr langsung dari XLSX, bukan kalkulasi ulang yang salah
-      var avgIdr = c.avg_idr || (c.modal > 0 && c.lot > 0 ? Math.round(c.modal/c.lot) : 0);
-      if(avgIdr > 0) addCryptoTx(dAgo(180), 'BUY', c.code, c.lot, avgIdr);
-      CRYPTO_DB[c.code] = {
-        name: c.name || c.code,
-        category: 'Layer 1',
-        baseIDR: c.price_idr || avgIdr || 1,
-        color: c.code==='BTC' ? '#f7931a' : '#0033ad',
-        icon: c.code[0]
-      };
-      // Set current price — LANGSUNG DALAM IDR (tanpa kurs USD)
-      cryptoPrices[c.code] = c.price_idr;
-    }
-  });
-}
-
-function loadSampleEtf(){
-  // Data ETF di jurnal kosong — skip
-}
-
-function loadSampleRd(){
-  // Semua reksa dana SUDAH DICAIRKAN — tidak ada posisi aktif
-  // Hanya daftarkan ke RD_DB untuk tampilan di tab Reksa Dana (mode riwayat)
-  var rdColorMap = {'Saham':'#00c8ff','Pendapatan Tetap':'#00e5a0','Pasar Uang':'#ffc107','Campuran':'#a78bfa'};
-  var rdRiskMap  = {'Saham':'Tinggi','Campuran':'Sedang','Pendapatan Tetap':'Sedang','Pasar Uang':'Rendah'};
-  XLSX_DATA.funds.forEach(function(f, i){
-    var key = 'RD-'+i;
-    RD_DB[key] = {
-      name: f.name.slice(0,35),
-      mi:   f.account||'Bibit',
-      type: f.category==='Pasar Uang'?'Pasar Uang':f.category==='Pendapatan Tetap'?'Pendapatan Tetap':f.category==='Saham'?'Saham':'Campuran',
-      baseNAB: 1000,
-      risk: rdRiskMap[f.category]||'Sedang',
-      color: rdColorMap[f.category]||'#a78bfa',
-      isHistory: true,
-      gl: f.gl||0,
-      gl_pct: f.gl_pct||0,
-      status: f.status||'DICAIRKAN'
-    };
-    // TIDAK ada addRdTx karena tidak ada posisi aktif
-  });
-}
-
-// ============================================================
 // CRYPTO FUNCTIONS
 // ============================================================
 function updateCryptoPrices(){
@@ -5944,49 +5755,36 @@ function getRdPortfolio(){
   });
 }
 
-var _rdHistoryFilter = 'all';
-function rdFilterPlatform(plat, btn){
-  _rdHistoryFilter = plat;
-  document.querySelectorAll('#page-reksadana .cheader .btn').forEach(function(b){ b.style.color=''; });
-  if(btn) btn.style.color='var(--accent)';
-  renderReksaDana();
-}
 
 function renderReksaDana(){
-  // ── Data dari XLSX (semua sudah dicairkan) ──
-  var funds = XLSX_DATA.funds;
-  var totalGain = funds.reduce(function(a,f){return a+(f.gl||0)},0);
-  var mc = XLSX_DATA.fund_margin_by_cat;
-
-  var gainBIBIT  = mc.BIBIT  ? (mc.BIBIT.Saham  + mc.BIBIT.FixedIncome  + mc.BIBIT.MoneyMarket)  : 0;
-  var gainIPOT   = mc.IPOT   ? (mc.IPOT.Saham   + mc.IPOT.FixedIncome   + mc.IPOT.MoneyMarket)   : 0;
-  var gainPOEMS  = mc.POEMS  ? (mc.POEMS.Saham  + mc.POEMS.FixedIncome  + mc.POEMS.MoneyMarket)  : 0;
-
-  // ── Posisi aktif dari rdTx ──
+  // ── Posisi aktif dari rdTx (manual input) ──
   var porto = getRdPortfolio();
   var aktivMV = porto.reduce(function(a,p){return a+p.mv},0);
+  var totalUnreal = porto.reduce(function(a,p){return a+p.unreal},0);
 
-  // ── Metrics ──
-  el('rd-total').textContent = 'Rp '+fmtK(totalGain);
-  el('rd-gain-bibit').textContent  = 'Rp '+fmtK(gainBIBIT);
-  el('rd-gain-bibit-sub').textContent = Object.keys(mc.BIBIT||{}).length+' kategori';
-  el('rd-gain-ipot').className = 'mval '+(gainIPOT>=0?'up':'dn');
-  el('rd-gain-ipot').textContent   = (gainIPOT>=0?'+':'')+'Rp '+fmtK(gainIPOT);
-  el('rd-gain-ipot-sub').textContent = 'IPOT platform';
-  el('rd-gain-poems').textContent  = 'Rp '+fmtK(gainPOEMS);
-  el('rd-gain-poems-sub').textContent = 'POEMS platform';
+  // ── Metrics (tanpa data historis impor) ──
+  el('rd-total').textContent = (totalUnreal>=0?'+':'')+'Rp '+fmtK(totalUnreal);
+  el('rd-gain-bibit').textContent  = 'Rp 0';
+  el('rd-gain-bibit-sub').textContent = '—';
+  el('rd-gain-ipot').className = 'mval neu';
+  el('rd-gain-ipot').textContent   = 'Rp 0';
+  el('rd-gain-ipot-sub').textContent = '—';
+  el('rd-gain-poems').textContent  = 'Rp 0';
+  el('rd-gain-poems-sub').textContent = '—';
   el('rd-aktif-val').textContent   = aktivMV>0 ? 'Rp '+fmtK(aktivMV) : 'Rp 0';
   el('rd-aktif-val').className     = 'mval '+(aktivMV>0?'up':'neu');
-  el('rd-aktif-sub').textContent   = aktivMV>0 ? porto.length+' produk aktif' : '0 produk (semua dicairkan)';
+  el('rd-aktif-sub').textContent   = aktivMV>0 ? porto.length+' produk aktif' : '0 produk aktif';
 
-  // ── Chart: gain per kategori ──
+  // ── Chart: gain per kategori (dari posisi aktif) ──
   kc('rdPerf');
   var catGain = {};
-  funds.forEach(function(f){ catGain[f.category] = (catGain[f.category]||0) + (f.gl||0); });
+  porto.forEach(function(p){
+    var info = RD_DB[p.code]||{type:'Lainnya'};
+    catGain[info.type] = (catGain[info.type]||0) + p.unreal;
+  });
   var catKeys = Object.keys(catGain).sort(function(a,b){return catGain[b]-catGain[a]});
-  var catColors = {'Pasar Uang':'#ffc107','Pendapatan Tetap':'#00e5a0','Saham':'#00c8ff','Campuran':'#a78bfa'};
   var cvP = el('rdPerfChart');
-  if(cvP) charts['rdPerf'] = new Chart(cvP,{
+  if(cvP && catKeys.length) charts['rdPerf'] = new Chart(cvP,{
     type:'bar',
     data:{labels:catKeys,datasets:[{
       data:catKeys.map(function(c){return catGain[c]}),
@@ -5998,31 +5796,9 @@ function renderReksaDana(){
       scales:{x:{grid:{color:GC},ticks:TC},y:{grid:{color:GC},ticks:Object.assign({},TC,{callback:function(v){return 'Rp '+fmtK(v)}}),position:'right'}}}
   });
 
-  // ── Chart: donut per platform ──
+  // ── Donut & legend platform (tidak ada data historis) ──
   kc('rdDonut');
-  var platData = [
-    {label:'BIBIT',  val:gainBIBIT,  color:'#00c8ff'},
-    {label:'IPOT',   val:gainIPOT,   color:'#a78bfa'},
-    {label:'POEMS',  val:gainPOEMS,  color:'#ffc107'},
-  ].filter(function(p){return p.val>0});
-  var cvD = el('rdDonut');
-  if(cvD && platData.length) charts['rdDonut'] = new Chart(cvD,{
-    type:'doughnut',
-    data:{labels:platData.map(function(p){return p.label}),
-          datasets:[{data:platData.map(function(p){return p.val}),
-                     backgroundColor:platData.map(function(p){return p.color}),borderWidth:0,hoverOffset:4}]},
-    options:{responsive:true,maintainAspectRatio:false,cutout:'65%',
-      plugins:{legend:{display:false},tooltip:Object.assign({},TT,{callbacks:{label:function(c){return c.label+': Rp '+fmtK(c.parsed)}}})}}
-  });
-  var totalPlatGain = gainBIBIT+gainIPOT+gainPOEMS||1;
-  el('rd-leg').innerHTML = platData.map(function(p){
-    return '<div style="display:flex;align-items:center;gap:7px;margin-bottom:7px">'
-      +'<div style="width:8px;height:8px;border-radius:2px;background:'+p.color+';flex-shrink:0"></div>'
-      +'<span style="font-family:\'IBM Plex Mono\',monospace;font-size:11px;color:var(--text2);flex:1">'+p.label+'</span>'
-      +'<span style="font-family:\'IBM Plex Mono\',monospace;font-size:11px;color:'+p.color+';font-weight:700">'+(p.val/totalPlatGain*100).toFixed(1)+'%</span>'
-      +'<span style="font-family:\'IBM Plex Mono\',monospace;font-size:10px;color:var(--text3);min-width:55px;text-align:right">'+fmtK(p.val)+'</span>'
-      +'</div>';
-  }).join('');
+  el('rd-leg').innerHTML = '<div style="text-align:center;color:var(--text3);font-size:11px;padding:10px 0">Belum ada data platform — isi transaksi reksa dana secara manual atau impor via file XLS</div>';
 
   // ── Tabel posisi aktif (rdTx) ──
   el('rd-tbody').innerHTML = porto.length===0
@@ -6046,23 +5822,8 @@ function renderReksaDana(){
           +'</tr>';
     }).join('');
 
-  // ── History table dari XLSX ──
-  var filtered = _rdHistoryFilter==='all' ? funds : funds.filter(function(f){return f.account===_rdHistoryFilter});
-  el('rd-history-tbody').innerHTML = filtered.map(function(f){
-    var col = {'Pasar Uang':'#ffc107','Pendapatan Tetap':'#00e5a0','Saham':'#00c8ff','Campuran':'#a78bfa'}[f.category]||'#4a5e82';
-    var gl = f.gl||0;
-    var pct = f.gl_pct||0;
-    var accBadge = f.account==='BIBIT'?'b-neu':f.account==='IPOT'?'b-pur':'b-amb';
-    return '<tr>'
-      +'<td style="font-size:11px">'+f.name+'</td>'
-      +'<td><span class="badge" style="background:rgba(255,255,255,.05);color:'+col+'">'+f.category+'</span></td>'
-      +'<td><span class="badge '+accBadge+'">'+f.account+'</span></td>'
-      +'<td class="mono '+(gl>=0?'up':'dn')+'">'+(gl>=0?'+':'')+'Rp '+fmtK(gl)+'</td>'
-      +'<td class="mono '+(pct>=0?'up':'dn')+'">'+(pct>=0?'+':'')+pct.toFixed(2)+'%</td>'
-      +'<td class="mono" style="color:var(--text3)">—</td>'
-      +'<td><span class="badge b-gray" style="font-size:9px">DICAIRKAN</span></td>'
-      +'</tr>';
-  }).join('')||'<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:14px">Tidak ada data</td></tr>';
+  // ── History table (tidak ada data impor — kosong) ──
+  el('rd-history-tbody').innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:14px">Tidak ada data historis — semua data diisi manual</td></tr>';
 
   // ── Log transaksi user ──
   var posRd={};
@@ -6493,7 +6254,6 @@ function delRdnManual(id){
 // ============================================================
 
 // === EMBEDDED DATA: Mutasi_Final.xlsx (transaksi historis + candle ADMR) ===
-var MUTASI_DATA={"codes":["AADI","ACES","ADMR","ADRO","AKRA","ANTM","ARCI","ASII","AUTO","AVIA","BBCA","BBKP","BBNI","BBRI","BBTN","BJTM","BMRI","BMTR","BREN","BRMS","BRPT","BSDE","BTPS","BUMI","BWPT","BYAN","CDIA","COIN","CPIN","CPRI","CUAN","DEWA","DMAS","ERAA","FREN","GGRM","GOTO","HGII","HMSP","HUMI","ICBP","ICON","IMPC","INAF","INDF","INKP","INPC","ISSP","ITMG","JPFA","KAEF","KEEN","KIOS","KRAS","LSIP","MAIN","MBMA","MDKA","MEDC","MIKA","MPMX","MTDL","MTEL","MYOR","NCKL","NOBU","PGAS","PGEO","PMMP","PTBA","PTRO","PWON","RAJA","SIDO","SILO","SIMP","SMDR","SMRA","SRTG","SUPA","TBIG","TELE","TINS","TKIM","TLKM","TOWR","UNTR","UNVR","WIFI","WIKA","WOOD"],"sek":["Indo Premier","Phillip Sekuritas","Stockbit"],"summary":{"AADI":{"r":7294639,"os":400,"oa":11095,"bv":15177800,"sv":18112500,"f":78035,"nb":4,"ns":2,"d0":45632,"d1":46107},"ACES":{"r":-623705,"os":0,"oa":0,"bv":14948500,"sv":14392000,"f":67205,"nb":10,"ns":7,"d0":43747,"d1":45945},"ADMR":{"r":14222527,"os":19500,"oa":2084,"bv":176928500,"sv":151256000,"f":741988,"nb":72,"ns":11,"d0":45873,"d1":46168},"ADRO":{"r":8031607,"os":10200,"oa":3474,"bv":196747000,"sv":170171000,"f":830623,"nb":128,"ns":80,"d0":44175,"d1":46128},"AKRA":{"r":164022,"os":0,"oa":0,"bv":18213500,"sv":18462000,"f":84478,"nb":28,"ns":29,"d0":43777,"d1":45282},"ANTM":{"r":4309461,"os":0,"oa":0,"bv":92878000,"sv":97628000,"f":440539,"nb":42,"ns":20,"d0":43448,"d1":45978},"ARCI":{"r":517762,"os":22300,"oa":1939,"bv":60684000,"sv":18112500,"f":159946,"nb":21,"ns":2,"d0":46044,"d1":46168},"ASII":{"r":1794294,"os":0,"oa":0,"bv":140620000,"sv":143068000,"f":653706,"nb":108,"ns":73,"d0":43430,"d1":45868},"AUTO":{"r":18441,"os":0,"oa":0,"bv":2390000,"sv":2420000,"f":11559,"nb":1,"ns":1,"d0":45582,"d1":45587},"AVIA":{"r":91086,"os":0,"oa":0,"bv":3874000,"sv":3984000,"f":18914,"nb":5,"ns":2,"d0":45554,"d1":45581},"BBCA":{"r":4093150,"os":5900,"oa":8262,"bv":274905000,"sv":231392500,"f":1142728,"nb":83,"ns":58,"d0":43416,"d1":46121},"BBKP":{"r":8032,"os":0,"oa":0,"bv":4779000,"sv":4809100,"f":22068,"nb":15,"ns":13,"d0":43640,"d1":44259},"BBNI":{"r":2826839,"os":7200,"oa":5206,"bv":129979000,"sv":95823000,"f":502267,"nb":82,"ns":57,"d0":43479,"d1":46106},"BBRI":{"r":924289,"os":0,"oa":0,"bv":15709000,"sv":16711600,"f":78311,"nb":15,"ns":7,"d0":43453,"d1":45576},"BBTN":{"r":924289,"os":0,"oa":0,"bv":15709000,"sv":16711600,"f":78311,"nb":15,"ns":7,"d0":43453,"d1":45576},"BJTM":{"r":-72912,"os":0,"oa":0,"bv":20902500,"sv":20930000,"f":100412,"nb":29,"ns":14,"d0":44026,"d1":46014},"BMRI":{"r":-1459836,"os":0,"oa":0,"bv":16461400,"sv":15073400,"f":71836,"nb":45,"ns":22,"d0":44207,"d1":46035},"BMTR":{"r":44494,"os":0,"oa":0,"bv":1600000,"sv":1652000,"f":7506,"nb":4,"ns":4,"d0":43627,"d1":43630},"BREN":{"r":14905,"os":0,"oa":0,"bv":530000,"sv":547500,"f":2595,"nb":1,"ns":1,"d0":45369,"d1":45372},"BRMS":{"r":9941523,"os":0,"oa":0,"bv":303812700,"sv":315183600,"f":1429377,"nb":112,"ns":30,"d0":45812,"d1":46062},"BRPT":{"r":1354073,"os":0,"oa":0,"bv":34688500,"sv":36213500,"f":170927,"nb":46,"ns":42,"d0":43979,"d1":45784},"BSDE":{"r":-396441,"os":0,"oa":0,"bv":7290000,"sv":6927500,"f":33941,"nb":7,"ns":4,"d0":45547,"d1":45896},"BTPS":{"r":-1405,"os":0,"oa":0,"bv":6158500,"sv":6185500,"f":28405,"nb":12,"ns":11,"d0":43955,"d1":45792},"BUMI":{"r":2238213,"os":50300,"oa":364,"bv":54883800,"sv":39028400,"f":208070,"nb":39,"ns":4,"d0":45811,"d1":46125},"BWPT":{"r":98560,"os":0,"oa":0,"bv":2420000,"sv":2530000,"f":11440,"nb":2,"ns":2,"d0":45868,"d1":45883},"BYAN":{"r":-209980,"os":0,"oa":0,"bv":2200000,"sv":2000000,"f":9980,"nb":1,"ns":1,"d0":45044,"d1":45792},"CDIA":{"r":1826216,"os":18800,"oa":2016,"bv":44270000,"sv":8290000,"f":102898,"nb":21,"ns":3,"d0":45847,"d1":46133},"COIN":{"r":175128,"os":0,"oa":0,"bv":10488000,"sv":10712000,"f":48872,"nb":3,"ns":1,"d0":46001,"d1":46007},"CPIN":{"r":544216,"os":0,"oa":0,"bv":19024000,"sv":19657500,"f":89284,"nb":9,"ns":9,"d0":43451,"d1":45581},"CPRI":{"r":-89195,"os":9000,"oa":126,"bv":1423900,"sv":202400,"f":3292,"nb":12,"ns":3,"d0":43577,"d1":43776},"CUAN":{"r":-344909,"os":0,"oa":0,"bv":15365000,"sv":15090000,"f":69909,"nb":7,"ns":2,"d0":45946,"d1":46048},"DEWA":{"r":-3452918,"os":7500,"oa":532,"bv":60912700,"sv":53730000,"f":260087,"nb":38,"ns":8,"d0":45874,"d1":46149},"DMAS":{"r":-1459836,"os":0,"oa":0,"bv":16461400,"sv":15073400,"f":71836,"nb":45,"ns":22,"d0":44207,"d1":46035},"ERAA":{"r":8125544,"os":21500,"oa":4705,"bv":412582500,"sv":321269300,"f":1715588,"nb":238,"ns":171,"d0":43405,"d1":45973},"FREN":{"r":121284,"os":0,"oa":0,"bv":3357500,"sv":3495300,"f":16516,"nb":22,"ns":22,"d0":43755,"d1":44039},"GGRM":{"r":-13243842,"os":600,"oa":55391,"bv":165350000,"sv":119532500,"f":660809,"nb":20,"ns":14,"d0":43479,"d1":45428},"GOTO":{"r":-291321,"os":0,"oa":0,"bv":6557700,"sv":6297100,"f":30721,"nb":27,"ns":17,"d0":45154,"d1":45945},"HGII":{"r":33772,"os":0,"oa":0,"bv":8917000,"sv":8992000,"f":41228,"nb":12,"ns":1,"d0":45926,"d1":45944},"HMSP":{"r":-261244,"os":0,"oa":0,"bv":7855000,"sv":7630000,"f":36244,"nb":2,"ns":2,"d0":43413,"d1":46048},"HUMI":{"r":15665,"os":0,"oa":0,"bv":2843700,"sv":2873100,"f":13735,"nb":6,"ns":1,"d0":45849,"d1":45860},"ICBP":{"r":58733,"os":0,"oa":0,"bv":8017500,"sv":8115000,"f":38767,"nb":3,"ns":3,"d0":43959,"d1":43987},"ICON":{"r":52010,"os":0,"oa":0,"bv":382000,"sv":436000,"f":1990,"nb":2,"ns":2,"d0":44414,"d1":44424},"IMPC":{"r":-53151,"os":0,"oa":0,"bv":1149000,"sv":1101000,"f":5151,"nb":1,"ns":1,"d0":46030,"d1":46031},"INAF":{"r":537745,"os":0,"oa":0,"bv":2069200,"sv":2618000,"f":11055,"nb":6,"ns":6,"d0":43816,"d1":43822},"INDF":{"r":8458,"os":0,"oa":0,"bv":22007500,"sv":22117500,"f":101542,"nb":11,"ns":8,"d0":44004,"d1":45050},"INKP":{"r":68874,"os":0,"oa":0,"bv":2370000,"sv":2450000,"f":11126,"nb":1,"ns":1,"d0":43467,"d1":43479},"INPC":{"r":82432,"os":0,"oa":0,"bv":899000,"sv":986000,"f":4568,"nb":5,"ns":5,"d0":44375,"d1":44390},"ISSP":{"r":13748,"os":0,"oa":0,"bv":1602000,"sv":1623500,"f":7752,"nb":6,"ns":6,"d0":43837,"d1":43853},"ITMG":{"r":140500,"os":0,"oa":0,"bv":6562500,"sv":6735000,"f":32000,"nb":1,"ns":1,"d0":43530,"d1":43536},"JPFA":{"r":194579,"os":0,"oa":0,"bv":9423500,"sv":9663000,"f":44921,"nb":6,"ns":5,"d0":43556,"d1":45931},"KAEF":{"r":397922,"os":0,"oa":0,"bv":9421500,"sv":9864000,"f":44578,"nb":29,"ns":29,"d0":43817,"d1":44033},"KEEN":{"r":2704,"os":0,"oa":0,"bv":1580000,"sv":1590000,"f":7296,"nb":1,"ns":1,"d0":45877,"d1":45883},"KIOS":{"r":12964,"os":0,"oa":0,"bv":415000,"sv":430000,"f":2036,"nb":2,"ns":1,"d0":44372,"d1":44384},"KRAS":{"r":147813,"os":0,"oa":0,"bv":1196000,"sv":1350000,"f":6187,"nb":1,"ns":1,"d0":44208,"d1":44209},"LSIP":{"r":21789,"os":500,"oa":1225,"bv":2563500,"sv":1983500,"f":10623,"nb":3,"ns":2,"d0":44736,"d1":45810},"MAIN":{"r":34430,"os":0,"oa":0,"bv":2175000,"sv":2220000,"f":10570,"nb":2,"ns":2,"d0":43628,"d1":43641},"MBMA":{"r":2248733,"os":9700,"oa":766,"bv":57159000,"sv":52226000,"f":249119,"nb":36,"ns":7,"d0":45896,"d1":46177},"MDKA":{"r":15478,"os":0,"oa":0,"bv":930000,"sv":950000,"f":4522,"nb":1,"ns":1,"d0":44145,"d1":44152},"MEDC":{"r":-156072,"os":0,"oa":0,"bv":3796000,"sv":3657000,"f":17072,"nb":11,"ns":11,"d0":43838,"d1":45586},"MIKA":{"r":176758,"os":0,"oa":0,"bv":12615000,"sv":12853000,"f":61242,"nb":8,"ns":3,"d0":45482,"d1":45595},"MPMX":{"r":352090,"os":0,"oa":0,"bv":7548600,"sv":7936500,"f":35810,"nb":19,"ns":19,"d0":43641,"d1":44201},"MTDL":{"r":8483,"os":0,"oa":0,"bv":310000,"sv":320000,"f":1517,"nb":1,"ns":1,"d0":45547,"d1":45560},"MTEL":{"r":1242127,"os":0,"oa":0,"bv":30382500,"sv":31774500,"f":149873,"nb":29,"ns":20,"d0":45365,"d1":45859},"MYOR":{"r":9460,"os":0,"oa":0,"bv":1145000,"sv":1160000,"f":5540,"nb":1,"ns":1,"d0":43990,"d1":43991},"NCKL":{"r":1104361,"os":0,"oa":0,"bv":28623500,"sv":29863000,"f":135139,"nb":14,"ns":5,"d0":46028,"d1":46085},"NOBU":{"r":20944,"os":0,"oa":0,"bv":830000,"sv":855000,"f":4056,"nb":1,"ns":1,"d0":45834,"d1":45839},"PGAS":{"r":1690178,"os":0,"oa":0,"bv":45681000,"sv":47596000,"f":224822,"nb":46,"ns":38,"d0":43451,"d1":45867},"PGEO":{"r":7489552,"os":81300,"oa":1523,"bv":273738500,"sv":158327000,"f":936045,"nb":153,"ns":45,"d0":45156,"d1":46161},"PMMP":{"r":-123767,"os":3800,"oa":228,"bv":1358000,"sv":372000,"f":3659,"nb":7,"ns":2,"d0":45370,"d1":45580},"PTBA":{"r":2230382,"os":0,"oa":0,"bv":96501900,"sv":99183700,"f":451418,"nb":72,"ns":50,"d0":43595,"d1":46093},"PTRO":{"r":550861,"os":300,"oa":5570,"bv":27160000,"sv":26162000,"f":122142,"nb":8,"ns":3,"d0":45896,"d1":46176},"PWON":{"r":1125499,"os":0,"oa":0,"bv":39485000,"sv":40795800,"f":185301,"nb":64,"ns":35,"d0":43591,"d1":46034},"RAJA":{"r":4322688,"os":3400,"oa":6013,"bv":188885500,"sv":176650000,"f":834614,"nb":55,"ns":14,"d0":45849,"d1":46126},"SIDO":{"r":-86517,"os":32000,"oa":636,"bv":31030500,"sv":10686000,"f":89947,"nb":36,"ns":18,"d0":44546,"d1":45880},"SILO":{"r":4472,"os":0,"oa":0,"bv":1665000,"sv":1677500,"f":8028,"nb":2,"ns":2,"d0":44372,"d1":44379},"SIMP":{"r":590499,"os":0,"oa":0,"bv":21169000,"sv":21861000,"f":101501,"nb":18,"ns":2,"d0":44474,"d1":46114},"SMDR":{"r":3119591,"os":69000,"oa":443,"bv":82524000,"sv":55381000,"f":317401,"nb":52,"ns":7,"d0":45496,"d1":46085},"SMRA":{"r":-258683,"os":0,"oa":0,"bv":4251000,"sv":4011200,"f":18883,"nb":3,"ns":1,"d0":46059,"d1":46084},"SRTG":{"r":160405,"os":0,"oa":0,"bv":5220000,"sv":5406000,"f":25595,"nb":7,"ns":6,"d0":44480,"d1":44810},"SUPA":{"r":125960,"os":0,"oa":0,"bv":3400500,"sv":3542500,"f":16040,"nb":4,"ns":2,"d0":46008,"d1":46024},"TBIG":{"r":341417,"os":0,"oa":0,"bv":11340000,"sv":11737000,"f":55583,"nb":8,"ns":8,"d0":44491,"d1":44532},"TELE":{"r":11187,"os":0,"oa":0,"bv":169500,"sv":181500,"f":813,"nb":1,"ns":1,"d0":43892,"d1":43893},"TINS":{"r":11122,"os":0,"oa":0,"bv":1422000,"sv":1440000,"f":6878,"nb":2,"ns":2,"d0":44274,"d1":44320},"TKIM":{"r":5179,"os":0,"oa":0,"bv":500000,"sv":507500,"f":2321,"nb":1,"ns":1,"d0":43944,"d1":43951},"TLKM":{"r":3299393,"os":0,"oa":0,"bv":339252400,"sv":344126000,"f":1574207,"nb":225,"ns":147,"d0":43434,"d1":46062},"TOWR":{"r":160405,"os":0,"oa":0,"bv":5220000,"sv":5406000,"f":25595,"nb":7,"ns":6,"d0":44480,"d1":44810},"UNTR":{"r":695677,"os":0,"oa":0,"bv":59045000,"sv":60015000,"f":274323,"nb":18,"ns":18,"d0":43460,"d1":45089},"UNVR":{"r":-3491417,"os":6000,"oa":5049,"bv":174655100,"sv":141614100,"f":742526,"nb":69,"ns":44,"d0":43406,"d1":45845},"WIFI":{"r":618550,"os":5700,"oa":3406,"bv":42081000,"sv":23425000,"f":141336,"nb":14,"ns":3,"d0":45988,"d1":46072},"WIKA":{"r":8934,"os":0,"oa":0,"bv":216000,"sv":226000,"f":1066,"nb":2,"ns":1,"d0":45275,"d1":45488},"WOOD":{"r":37999,"os":0,"oa":0,"bv":2470000,"sv":2520000,"f":12001,"nb":1,"ns":1,"d0":44209,"d1":44215}},"totals":{"r":77229965,"f":17322283,"bv":4063511800,"sv":3499897100,"n":3845,"db":2465,"ds":1380,"disc_b":1710,"disc_s":881,"first":43405,"last":46177},"raw":[[0,45632,900,5971,0,2,18],[0,45632,900,5971,0,2,18],[0,45636,900,10250,1,2,28],[0,45637,900,9875,1,2,28],[0,46106,300,11175,0,2,18],[0,46107,100,10775,0,2,18],[1,43747,200,1810,0,0,18],[1,43755,200,1840,1,0,28],[1,43811,300,1630,0,0,18],[1,43812,200,1550,0,0,18],[1,43817,200,1600,1,0,28],[1,43832,200,1510,0,0,18],[1,43845,300,1600,1,0,28],[1,43845,200,1600,1,0,28],[1,43893,100,1465,0,0,18],[1,43895,500,1490,0,0,18],[1,43899,100,1400,1,0,28],[1,43899,500,1400,1,0,28],[1,45916,20000,438,0,2,18],[1,45918,2000,436,0,2,18],[1,45922,2000,426,0,2,18],[1,45931,5000,422,0,2,18],[1,45945,29000,416,1,2,28],[2,45873,2000,1140,0,2,18],[2,45874,1000,1125,0,2,18],[2,45875,5000,1110,0,2,18],[2,45880,2000,1110,0,2,18],[2,45881,10000,1110,0,2,18],[2,45882,1000,1090,0,2,18],[2,45883,1000,1045,0,2,18],[2,45884,1000,1035,0,2,18],[2,45890,1000,1020,0,2,18],[2,45904,2000,1045,0,2,18],[2,45908,1000,1020,0,2,18],[2,45909,1000,990,0,2,18],[2,45922,1000,990,0,2,18],[2,45939,29000,1500,1,2,28],[2,45939,10000,1500,0,2,18],[2,45940,1000,1400,0,2,18],[2,45945,1000,1290,0,2,18],[2,45958,2500,1420,0,2,18],[2,45965,1000,1370,0,2,18],[2,45966,200,1350,0,2,18],[2,45966,500,1370,0,2,18],[2,45975,500,1340,0,2,18],[2,45986,2000,1305,0,2,18],[2,45995,1000,1270,0,2,18],[2,46000,3900,1430,0,2,18],[2,46000,500,1380,0,2,18],[2,46009,1000,1405,0,2,18],[2,46014,500,1410,0,2,18],[2,46014,500,1400,0,2,18],[2,46020,26100,1485,1,2,28],[2,46020,500,1485,0,2,18],[2,46020,2000,1560,0,2,18],[2,46020,2500,1615,1,2,28],[2,46020,1000,1590,0,2,18],[2,46020,1000,1600,0,2,18],[2,46024,2000,1625,1,2,28],[2,46024,1500,1650,0,2,18],[2,46024,500,1640,0,2,18],[2,46024,1000,1620,0,2,18],[2,46028,3000,1720,1,2,28],[2,46028,2000,1910,0,2,18],[2,46028,3000,1830,0,2,18],[2,46028,5000,1875,1,2,28],[2,46028,5000,1850,0,2,18],[2,46029,5000,1870,1,2,28],[2,46042,1500,2050,0,2,18],[2,46042,2000,1950,0,2,18],[2,46042,3500,2040,1,2,28],[2,46043,1000,2000,0,2,18],[2,46043,1000,1990,0,2,18],[2,46043,1000,1980,0,2,18],[2,46043,2000,2000,0,2,18],[2,46044,5000,2040,1,2,28],[2,46044,2500,2070,0,2,18],[2,46044,2000,2110,0,2,18],[2,46044,4500,2130,1,2,28],[2,46044,5000,2150,0,2,18],[2,46045,5000,2180,1,2,28],[2,46045,2000,2230,0,2,18],[2,46045,2000,2250,0,2,18],[2,46048,2000,2300,0,2,18],[2,46048,1000,2280,0,2,18],[2,46050,500,2220,0,2,18],[2,46050,500,2080,0,2,18],[2,46051,200,1980,0,2,18],[2,46051,500,2070,0,2,18],[2,46056,500,1890,0,2,18],[2,46057,500,1950,0,2,18],[2,46058,400,1870,0,2,18],[2,46063,200,1925,0,2,18],[2,46064,1000,1930,0,2,18],[2,46071,300,1925,0,2,18],[2,46072,2000,2060,0,2,18],[2,46077,200,2050,0,2,18],[2,46078,500,2130,0,2,18],[2,46079,500,2080,0,2,18],[2,46080,1000,2070,0,2,18],[2,46090,200,1850,0,2,18],[2,46106,500,1965,0,2,18],[2,46113,500,1980,0,2,18],[2,46118,1000,1800,0,2,18],[2,46127,1000,1975,0,2,18],[2,46168,500,1520,0,2,18],[3,44175,2000,1540,0,2,18],[3,44179,2000,1570,1,2,28],[3,44277,1000,1295,0,2,18],[3,44280,1000,1210,0,2,18],[3,44321,500,1190,0,2,18],[3,44358,2300,1305,1,2,28],[3,44361,200,1310,1,2,28],[3,44383,1000,1270,0,2,18],[3,44391,300,1220,0,2,18],[3,44399,1300,1290,1,2,28],[3,44468,300,1775,0,2,18],[3,44468,200,1735,0,2,18],[3,44468,100,1775,0,2,18],[3,44469,300,1795,1,2,28],[3,44469,200,1770,1,2,28],[3,44469,100,1780,1,2,28],[3,44629,200,2900,0,2,18],[3,44844,100,3910,0,2,18],[3,44848,200,3940,0,2,18],[3,44866,200,3800,0,2,18],[3,44866,200,3860,0,2,18],[3,44910,100,3930,1,2,28],[3,44910,200,3930,1,2,28],[3,44910,200,3930,1,2,28],[3,44910,200,3930,1,2,28],[3,44951,100,3120,0,2,18],[3,44952,200,3000,0,2,18],[3,44952,100,3000,0,2,18],[3,44959,200,2910,0,2,18],[3,44959,100,2870,0,2,18],[3,44977,200,2830,0,2,18],[3,45009,100,2690,0,2,18],[3,45019,200,2950,1,2,28],[3,45019,100,2950,1,2,28],[3,45019,200,2950,1,2,28],[3,45019,100,2950,1,2,28],[3,45019,200,2950,1,2,28],[3,45027,200,3050,1,2,28],[3,45043,300,3080,0,2,18],[3,45044,100,3130,1,2,28],[3,45051,300,2800,0,2,18],[3,45051,200,2780,0,2,18],[3,45056,200,2910,1,2,28],[3,45058,500,2760,0,2,18],[3,45061,100,2650,0,2,18],[3,45061,200,2670,0,2,18],[3,45063,200,2630,0,2,18],[3,45063,200,2550,0,2,18],[3,45065,300,2400,0,2,18],[3,45070,200,2250,0,2,18],[3,45075,500,2050,0,2,18],[3,45076,500,2140,1,2,28],[3,45077,200,2040,0,2,18],[3,45083,200,2210,1,2,28],[3,45097,200,2250,0,2,18],[3,45097,100,2250,0,2,18],[3,45110,200,2330,1,2,28],[3,45110,200,2330,1,2,28],[3,45119,300,2380,0,2,18],[3,45125,200,2350,0,2,18],[3,45133,500,2500,1,2,28],[3,45159,100,2610,1,2,28],[3,45159,200,2610,1,2,28],[3,45160,100,2690,1,2,28],[3,45160,300,2690,1,2,28],[3,45215,200,2770,1,2,28],[3,45215,200,2770,1,2,28],[3,45246,200,2500,0,2,18],[3,45251,200,2580,1,2,28],[3,45273,100,2450,0,2,18],[3,45275,100,2560,1,2,28],[3,45289,300,2390,0,2,18],[3,45294,100,2420,0,2,18],[3,45294,200,2410,0,2,18],[3,45303,500,2480,1,2,28],[3,45307,100,2510,1,2,28],[3,45313,200,2400,0,2,18],[3,45314,100,2380,0,2,18],[3,45329,200,2450,0,2,18],[3,45341,200,2480,0,2,18],[3,45348,200,2370,0,2,18],[3,45348,100,2370,0,2,18],[3,45356,200,2600,1,2,28],[3,45356,300,2580,1,2,28],[3,45359,200,2700,1,2,28],[3,45364,300,2600,0,2,18],[3,45366,500,2650,0,2,18],[3,45376,300,2650,1,2,28],[3,45384,800,2640,1,2,28],[3,45399,200,2770,0,2,18],[3,45404,100,2770,0,2,18],[3,45405,500,2750,0,2,18],[3,45406,200,2670,0,2,18],[3,45406,500,2700,0,2,18],[3,45414,500,2700,0,2,18],[3,45426,100,2880,0,2,18],[3,45426,200,2900,0,2,18],[3,45426,200,2910,0,2,18],[3,45432,1000,2890,0,2,18],[3,45446,1000,2900,1,2,28],[3,45446,800,2870,1,2,28],[3,45448,300,2890,0,2,18],[3,45453,1000,2770,0,2,18],[3,45453,1000,2800,0,2,18],[3,45455,1200,2800,1,2,28],[3,45456,1200,2790,0,2,18],[3,45462,300,2700,0,2,18],[3,45462,200,2710,0,2,18],[3,45464,1000,2730,0,2,18],[3,45474,300,2770,0,2,18],[3,45474,500,2790,1,2,28],[3,45475,1000,2840,1,2,28],[3,45476,600,2900,1,2,28],[3,45476,600,2870,1,2,28],[3,45484,1000,2890,0,2,18],[3,45485,500,2820,0,2,18],[3,45485,300,2850,0,2,18],[3,45491,700,3020,1,2,28],[3,45497,300,3150,1,2,28],[3,45497,500,3180,1,2,28],[3,45502,1000,3190,1,2,28],[3,45503,2700,3230,1,2,28],[3,45504,500,3210,0,2,18],[3,45509,1400,3110,0,2,18],[3,45509,500,3210,0,2,18],[3,45511,100,3230,1,2,28],[3,45511,1400,3230,1,2,28],[3,45511,500,3230,1,2,28],[3,45512,1000,3200,0,2,18],[3,45512,500,3170,0,2,18],[3,45512,1000,3200,0,2,18],[3,45512,500,3210,0,2,18],[3,45513,500,3180,0,2,18],[3,45518,1000,3200,0,2,18],[3,45523,1000,3270,0,2,18],[3,45524,500,3250,0,2,18],[3,45530,1000,3490,1,2,28],[3,45530,500,3490,1,2,28],[3,45530,500,3440,0,2,18],[3,45531,300,3520,1,2,28],[3,45531,2000,3520,1,2,28],[3,45534,1000,3550,1,2,28],[3,45539,700,3520,0,2,18],[3,45539,300,3530,0,2,18],[3,45540,500,3490,0,2,18],[3,45540,500,3490,0,2,18],[3,45541,500,3500,0,2,18],[3,45541,200,3500,0,2,18],[3,45541,500,3510,0,2,18],[3,45544,500,3450,1,2,28],[3,45544,1500,3450,1,2,28],[3,45546,2000,3480,0,2,18],[3,45547,500,4000,1,2,28],[3,45548,500,3750,0,2,18],[3,45552,500,3680,0,2,18],[3,45552,500,3680,0,2,18],[3,45552,500,3620,1,2,28],[3,45552,500,3650,1,2,28],[3,45552,200,3640,1,2,28],[3,45552,300,3590,0,2,18],[3,45553,500,3650,0,2,18],[3,45553,300,3640,1,2,28],[3,45553,300,3700,0,2,18],[3,45554,2500,3660,1,2,28],[3,45558,1000,3690,0,2,18],[3,45558,1000,3720,0,2,18],[3,45560,1000,3710,0,2,18],[3,45560,1000,3700,0,2,18],[3,45561,1000,3740,1,2,28],[3,45561,1000,3740,1,2,28],[3,45561,1000,3780,1,2,28],[3,45562,500,3850,1,2,28],[3,45562,500,3860,1,2,28],[3,45562,500,3890,1,2,28],[3,45562,500,3750,0,2,18],[3,45562,500,3900,1,2,28],[3,45562,500,3820,1,2,28],[3,45565,700,3820,0,2,18],[3,45565,500,3840,0,2,18],[3,45565,500,3880,0,2,18],[3,45565,500,3910,0,2,18],[3,45566,300,3750,0,2,18],[3,45567,500,3850,0,2,18],[3,45567,200,3870,0,2,18],[3,45568,200,3850,0,2,18],[3,45572,1000,3900,1,2,28],[3,45572,1000,3880,1,2,28],[3,45573,500,3800,0,2,18],[3,45573,300,3830,0,2,18],[3,45573,1000,3840,0,2,18],[3,45573,1000,3830,0,2,18],[3,45579,6300,3900,1,2,28],[3,45580,1000,3880,0,2,18],[3,45580,1000,3850,0,2,18],[3,45580,1000,3870,0,2,18],[3,45580,1000,3910,1,2,28],[3,45580,1000,3900,1,2,28],[3,45581,1000,3850,0,2,18],[3,45581,1000,3870,0,2,18],[3,45582,1000,3840,0,2,18],[3,45583,2000,3850,0,2,18],[3,45583,500,3870,0,2,18],[3,45610,300,3850,0,2,18],[3,45799,1000,2150,0,2,18],[3,45800,300,2100,0,2,18],[3,45862,200,2000,0,2,18],[3,45877,500,1800,0,2,18],[3,46128,200,2500,0,2,18],[4,43777,300,3800,0,0,18],[4,43790,200,3560,0,0,18],[4,43798,100,3390,0,0,18],[4,43801,100,3580,0,0,18],[4,43801,300,3660,1,0,28],[4,43801,200,3660,1,0,28],[4,43801,100,3660,1,0,28],[4,43802,200,3570,0,0,18],[4,43804,100,3750,1,0,28],[4,43804,200,3750,1,0,28],[4,43847,100,3450,0,0,18],[4,43847,200,3480,0,0,18],[4,43847,200,3480,0,0,18],[4,43850,300,3440,0,0,18],[4,43853,200,3380,0,0,18],[4,43857,200,3440,0,0,18],[4,43858,300,3360,0,0,18],[4,43859,400,3400,0,0,18],[4,43879,100,3100,0,0,18],[4,43880,100,3030,0,0,18],[4,43885,100,2990,0,0,18],[4,43887,200,2890,0,0,18],[4,43895,200,2530,0,0,18],[4,43899,100,2200,0,0,18],[4,43900,100,2270,1,0,28],[4,43903,100,1800,0,0,18],[4,43910,100,1615,0,0,18],[4,43916,100,1805,1,0,28],[4,43916,100,1830,1,0,28],[4,43929,100,2090,0,0,18],[4,43944,100,2150,1,0,28],[4,43955,200,2240,0,0,18],[4,43957,200,2440,1,0,28],[4,43999,200,2580,1,0,28],[4,44067,200,2940,1,0,28],[4,44172,300,3380,1,0,28],[4,44172,200,3380,1,0,28],[4,44172,200,3380,1,0,28],[4,44172,300,3380,1,0,28],[4,44172,400,3380,1,0,28],[4,44181,100,3310,1,0,28],[4,44181,100,3310,1,0,28],[4,44181,100,3310,1,0,28],[4,44181,200,3310,1,0,28],[4,44181,200,3310,1,0,28],[4,44181,100,3310,1,0,28],[4,44207,500,3380,0,0,18],[4,44207,500,3380,0,0,18],[4,44210,300,3280,0,0,18],[4,44222,200,2970,0,0,18],[4,44230,500,3340,1,0,28],[4,44230,300,3360,1,0,28],[4,44230,200,3360,1,0,28],[4,44231,500,3450,1,0,28],[4,45266,200,1385,0,2,18],[4,45274,100,1435,1,2,28],[4,45282,100,1450,1,2,28],[5,43448,1500,760,0,0,18],[5,43461,1500,770,1,0,28],[5,43985,2000,560,0,0,18],[5,43986,2000,590,1,0,28],[5,44000,2000,620,0,0,18],[5,44018,2000,635,1,0,28],[5,44036,1400,690,0,1,18],[5,44040,1400,740,1,1,28],[5,44484,500,2420,0,0,18],[5,44488,500,2500,1,0,28],[5,44935,200,1630,0,0,18],[5,45043,100,2110,0,0,18],[5,45049,100,2040,0,0,18],[5,45061,300,1985,0,0,18],[5,45061,500,1990,0,0,18],[5,45063,200,1930,0,0,18],[5,45072,200,1925,0,0,18],[5,45077,100,1895,0,0,18],[5,45082,200,1980,1,0,28],[5,45082,200,1980,1,0,28],[5,45082,100,1980,1,0,28],[5,45091,500,2030,1,0,28],[5,45097,200,2020,0,0,18],[5,45154,500,1960,0,0,18],[5,45173,200,1955,0,0,18],[5,45222,200,1800,0,0,18],[5,45222,100,1750,0,0,18],[5,45327,700,1440,0,0,18],[5,45335,700,1550,1,0,28],[5,45372,200,1710,1,0,28],[5,45407,500,1600,0,0,18],[5,45414,500,1550,0,0,18],[5,45447,300,1440,0,0,18],[5,45492,500,1340,0,0,18],[5,45565,500,1480,1,0,28],[5,45782,2200,2320,1,0,28],[5,45860,1000,3070,0,2,18],[5,45860,10000,2970,0,2,18],[5,45861,1000,2910,0,2,18],[5,45862,1000,3040,0,2,18],[5,45866,2000,2970,0,2,18],[5,45868,1000,2980,0,2,18],[5,45869,1000,2950,0,2,18],[5,45869,500,2850,0,2,18],[5,45869,500,2800,0,2,18],[5,45873,500,2900,0,2,18],[5,45875,3000,3060,1,0,28],[5,45875,3500,3030,1,0,28],[5,45877,12000,3060,1,0,28],[5,45880,1000,3030,0,2,18],[5,45880,2000,3060,0,2,18],[5,45881,1000,2900,0,2,18],[5,45883,1000,2900,0,2,18],[5,45884,500,2900,0,2,18],[5,45888,300,2850,0,2,18],[5,45891,1000,2830,0,2,18],[5,45901,6800,3170,1,2,28],[5,45960,300,1625,1,0,28],[5,45960,500,1625,1,0,28],[5,45975,500,2960,0,2,18],[5,45978,500,2970,0,2,18],[5,45978,1000,3100,1,2,28],[6,46044,2500,1945,0,2,18],[6,46044,2000,1930,0,2,18],[6,46045,4500,1975,1,2,28],[6,46045,2500,1960,0,2,18],[6,46045,2000,1945,0,2,18],[6,46048,4500,2050,1,2,28],[6,46049,14000,2010,0,2,18],[6,46049,1000,1980,0,2,18],[6,46049,2000,1990,0,2,18],[6,46050,200,1955,0,2,18],[6,46050,200,1955,0,2,18],[6,46050,200,1890,0,2,18],[6,46051,300,1880,0,2,18],[6,46052,300,1880,0,2,18],[6,46052,200,1810,0,2,18],[6,46056,300,1570,0,2,18],[6,46057,1500,1780,0,2,18],[6,46057,500,1750,0,2,18],[6,46064,300,1715,0,2,18],[6,46071,200,1695,0,2,18],[6,46087,100,1695,0,2,18],[6,46150,500,1565,0,2,18],[6,46168,500,1200,0,2,18],[7,43430,500,8300,0,0,18],[7,43432,500,8375,1,0,28],[7,43473,800,8425,0,0,18],[7,43473,100,8425,0,0,18],[7,43474,400,8225,0,0,18],[7,43475,200,8150,0,0,18],[7,43479,300,8075,0,0,18],[7,43488,800,8475,1,0,28],[7,43518,100,7650,0,0,18],[7,43518,300,7650,0,0,18],[7,43524,300,7600,0,0,18],[7,43528,200,7150,0,0,18],[7,43528,200,7150,0,0,18],[7,43573,400,7575,1,0,28],[7,43578,100,7850,1,0,28],[7,43578,200,7850,1,0,28],[7,43579,300,7525,0,0,18],[7,43677,300,7000,0,0,18],[7,43691,100,6600,0,0,18],[7,43691,100,6600,0,0,18],[7,43691,100,6600,0,0,18],[7,43713,300,6675,1,0,28],[7,43761,100,6675,1,0,28],[7,43783,200,6550,0,0,18],[7,43804,100,6575,0,0,18],[7,43804,100,6575,0,0,18],[7,43805,300,6700,1,0,28],[7,43853,300,6700,1,0,28],[7,43853,200,6700,1,0,28],[7,43887,100,6050,0,0,18],[7,43893,100,5800,0,0,18],[7,43901,100,5150,0,0,18],[7,43903,200,4910,1,0,28],[7,43917,200,4260,0,0,18],[7,43927,100,3930,0,0,18],[7,43927,100,3990,1,0,28],[7,43942,200,3680,0,0,18],[7,43942,100,3690,0,0,18],[7,43944,200,3720,1,0,28],[7,43944,100,3770,1,0,28],[7,43965,100,3650,0,0,18],[7,43966,100,3710,1,0,28],[7,43978,200,4350,1,0,28],[7,43980,300,4650,0,0,18],[7,43981,300,4730,1,0,28],[7,43984,100,4860,0,0,18],[7,43990,100,5050,1,0,28],[7,43999,100,4930,0,0,18],[7,44006,100,5050,1,0,28],[7,44078,200,5050,0,0,18],[7,44144,300,5600,0,1,18],[7,44145,300,5750,1,1,28],[7,44203,100,6175,0,2,18],[7,44203,100,6750,0,2,18],[7,44217,100,6800,1,2,28],[7,44217,100,6775,1,2,28],[7,44217,100,6775,1,2,28],[7,44217,200,6750,1,2,28],[7,44217,100,6750,1,2,28],[7,44218,300,5550,1,2,28],[7,44222,100,6325,0,2,18],[7,44236,100,5900,0,2,18],[7,44236,100,6075,0,2,18],[7,44236,100,5900,0,2,18],[7,44244,200,5775,0,1,18],[7,44246,100,5775,0,1,18],[7,44253,100,5375,0,1,18],[7,44258,100,5675,1,1,28],[7,44260,100,5500,0,2,18],[7,44273,300,5775,1,1,28],[7,44365,200,4950,0,2,18],[7,44466,200,5175,1,2,28],[7,44474,100,5500,0,2,18],[7,44475,100,6000,1,2,28],[7,44475,100,6000,1,2,28],[7,44475,100,6000,1,2,28],[7,44475,100,6000,1,2,28],[7,44475,100,6000,1,2,28],[7,44519,100,6250,1,2,28],[7,44531,300,5700,0,2,18],[7,44531,400,5700,0,2,18],[7,44533,300,5800,1,2,28],[7,44539,400,5875,1,2,28],[7,44566,200,5650,0,2,18],[7,44566,200,5650,0,2,18],[7,44566,100,5650,0,2,18],[7,44566,100,5650,0,2,18],[7,44566,200,5900,0,2,18],[7,44567,200,5800,1,2,28],[7,44567,100,6250,1,2,28],[7,44567,100,6000,1,2,28],[7,44567,200,6300,1,2,28],[7,44627,200,5775,1,2,28],[7,44627,100,5775,1,2,28],[7,44653,200,6675,1,2,28],[7,44677,300,7150,1,2,28],[7,44692,100,7100,1,2,28],[7,44701,100,7150,1,2,28],[7,44714,100,7350,1,2,28],[7,44756,100,6050,1,2,28],[7,44762,100,6250,1,2,28],[7,45260,100,5450,0,2,18],[7,45261,100,5700,1,2,28],[7,45288,200,5575,0,2,18],[7,45306,100,5500,0,2,18],[7,45307,100,5500,0,2,18],[7,45308,100,5375,0,2,18],[7,45313,100,5250,0,2,18],[7,45314,100,5100,0,2,18],[7,45320,100,5000,0,2,18],[7,45321,100,5150,1,2,28],[7,45321,100,5125,1,2,28],[7,45334,100,5275,0,2,18],[7,45351,100,5225,0,2,18],[7,45355,100,5175,0,2,18],[7,45366,200,5200,0,2,18],[7,45377,100,5250,0,2,18],[7,45377,100,5275,0,2,18],[7,45398,100,5150,0,2,18],[7,45401,100,4900,0,2,18],[7,45401,200,4930,0,2,18],[7,45406,200,4950,0,2,18],[7,45406,100,4990,0,2,18],[7,45414,200,5200,0,2,18],[7,45415,200,5225,1,2,28],[7,45418,400,5150,0,2,18],[7,45419,100,5050,0,2,18],[7,45420,200,5150,1,2,28],[7,45425,100,5100,0,2,18],[7,45426,100,4600,0,2,18],[7,45426,200,4630,0,2,18],[7,45432,200,4750,0,2,18],[7,45434,300,4720,1,2,28],[7,45439,200,4590,0,2,18],[7,45442,100,4350,0,2,18],[7,45442,200,4360,0,2,18],[7,45446,300,4450,1,2,28],[7,45450,200,4550,0,2,18],[7,45467,300,4430,0,2,18],[7,45470,500,4400,0,2,18],[7,45474,300,4600,1,2,28],[7,45475,500,4530,0,2,18],[7,45477,500,4570,0,2,18],[7,45477,300,4590,0,2,18],[7,45478,500,4550,0,2,18],[7,45482,300,4570,0,2,18],[7,45483,500,4550,0,2,18],[7,45484,1000,4520,0,2,18],[7,45488,500,4500,0,2,18],[7,45489,300,4400,0,2,18],[7,45490,500,4460,1,2,28],[7,45502,1000,4610,1,2,28],[7,45505,300,4690,0,2,18],[7,45534,300,5025,0,2,18],[7,45539,300,5050,0,2,18],[7,45558,500,5225,0,2,18],[7,45560,2000,5225,1,2,28],[7,45562,500,5150,0,2,18],[7,45568,600,5225,1,2,28],[7,45573,1000,5225,1,2,28],[7,45573,700,5150,1,2,28],[7,45575,1000,5075,0,2,18],[7,45581,500,4960,1,2,28],[7,45582,1000,4950,0,2,18],[7,45586,1300,5100,1,2,28],[7,45587,1000,5200,1,2,28],[7,45596,500,5125,0,2,18],[7,45636,300,5175,1,2,28],[7,45673,500,4880,0,2,18],[7,45679,500,4940,1,2,28],[7,45729,200,4780,0,2,18],[7,45730,200,4930,1,2,28],[7,45763,200,4800,0,2,18],[7,45764,100,4720,0,2,18],[7,45768,100,4800,1,2,28],[7,45783,300,4770,0,2,18],[7,45784,300,4830,1,2,28],[7,45785,300,4820,0,2,18],[7,45785,500,4800,0,2,18],[7,45860,200,4680,0,2,18],[7,45868,4600,5100,1,2,28],[8,45582,1000,2390,0,2,19],[8,45587,1000,2420,1,2,29],[9,45554,2000,486,0,2,19],[9,45560,2000,490,0,2,19],[9,45562,4000,510,1,2,29],[9,45575,2000,480,0,2,19],[9,45579,1000,480,0,2,19],[9,45580,1000,482,0,2,19],[9,45581,4000,486,1,2,29],[10,43416,200,24200,0,0,18],[10,43432,200,24900,1,0,28],[10,43440,200,26100,0,0,18],[10,43440,100,26100,0,0,18],[10,43441,300,25650,0,0,18],[10,43446,200,25875,0,0,18],[10,43446,200,25875,0,0,18],[10,43452,300,25775,0,0,18],[10,43454,100,25175,0,0,18],[10,43462,200,26000,1,0,28],[10,43462,300,26125,1,0,28],[10,43467,200,25975,1,0,28],[10,43472,300,25600,0,0,18],[10,43488,200,27200,1,0,28],[10,43488,300,27200,1,0,28],[10,43490,200,27475,0,0,18],[10,43502,100,28400,1,0,28],[10,43502,100,28400,1,0,28],[10,43502,300,28400,1,0,28],[10,43502,200,28400,1,0,28],[10,43514,300,26950,0,0,18],[10,43517,200,27175,0,0,18],[10,43517,100,27325,0,0,18],[10,43517,200,27325,0,0,18],[10,43523,500,27400,0,0,18],[10,43524,300,27550,1,0,28],[10,43524,200,27600,1,0,28],[10,43524,100,27600,1,0,28],[10,43529,200,27700,1,0,28],[10,43529,500,27700,1,0,28],[10,43640,200,29375,0,0,18],[10,43644,200,29900,1,0,28],[10,43700,100,29600,0,0,18],[10,43705,100,29950,0,0,18],[10,43707,100,30125,1,0,28],[10,43707,100,30125,1,0,28],[10,43944,100,25775,0,0,18],[10,43951,100,26225,1,0,28],[10,43963,100,25450,0,0,18],[10,43964,100,25600,0,0,18],[10,43966,100,23800,0,0,18],[10,43970,100,24325,0,0,18],[10,43970,100,24400,1,0,28],[10,43977,100,24800,1,0,28],[10,43979,100,25700,1,0,28],[10,43979,100,26050,1,0,28],[10,43980,100,26300,0,0,18],[10,43984,100,27100,1,0,28],[10,44546,100,7275,0,0,18],[10,44546,100,7275,0,0,18],[10,44547,100,7375,1,0,28],[10,44547,100,7425,1,0,28],[10,44690,100,7600,0,0,18],[10,44778,100,7850,1,0,28],[10,45398,200,9450,0,2,18],[10,45399,100,9550,0,2,18],[10,45405,300,9700,1,2,28],[10,45414,200,9600,0,2,18],[10,45415,200,9850,1,2,28],[10,45418,200,9825,0,2,18],[10,45420,100,9375,0,2,18],[10,45425,100,9525,1,2,28],[10,45432,100,9600,0,2,18],[10,45441,100,9200,0,2,18],[10,45442,100,9000,0,2,18],[10,45442,300,9100,0,2,18],[10,45443,300,9250,1,2,28],[10,45443,100,9200,1,2,28],[10,45449,100,9500,1,2,28],[10,45450,200,9400,0,2,18],[10,45454,100,9300,0,2,18],[10,45455,500,9250,0,2,18],[10,45456,500,9250,0,2,18],[10,45457,100,9150,0,2,18],[10,45462,100,9150,0,2,18],[10,45462,300,9200,0,2,18],[10,45463,500,9425,1,2,28],[10,45464,300,9650,1,2,28],[10,45464,300,9650,1,2,28],[10,45468,200,9525,0,2,18],[10,45469,200,9475,0,2,18],[10,45469,500,9500,0,2,18],[10,45470,200,9700,1,2,28],[10,45470,100,9700,1,2,28],[10,45470,100,9625,1,2,28],[10,45470,200,9600,1,2,28],[10,45471,300,9925,1,2,28],[10,45476,300,9975,1,2,28],[10,45477,500,9900,0,2,18],[10,45478,200,9950,1,2,28],[10,45478,500,9900,1,2,28],[10,45481,100,10050,1,2,28],[10,45481,300,10000,1,2,28],[10,45482,100,10100,1,2,28],[10,45485,200,10050,0,2,18],[10,45488,100,10000,0,2,18],[10,45489,100,9950,0,2,18],[10,45490,100,9875,0,2,18],[10,45491,300,10100,1,2,28],[10,45491,200,10050,1,2,28],[10,45492,200,10000,0,2,18],[10,45496,200,10175,1,2,28],[10,45509,200,9900,0,2,18],[10,45509,100,10000,0,2,18],[10,45509,100,10000,0,2,18],[10,45512,400,10200,1,2,28],[10,45518,200,10250,0,2,18],[10,45520,200,10300,1,2,28],[10,45537,200,10200,0,2,18],[10,45537,300,10250,0,2,18],[10,45544,500,10300,1,2,28],[10,45581,1000,10475,0,0,18],[10,45582,1000,10700,1,0,28],[10,45660,300,9850,0,0,18],[10,45660,200,9750,0,0,18],[10,45677,200,9700,0,0,18],[10,45681,200,9350,0,0,18],[10,45733,100,8600,0,0,18],[10,45763,200,8450,0,2,18],[10,45770,200,8650,1,2,28],[10,45771,200,8600,0,2,18],[10,45775,200,8700,1,2,28],[10,45804,500,9450,0,2,18],[10,45861,200,8400,0,2,18],[10,45866,2000,8525,0,2,18],[10,45867,500,8450,0,2,18],[10,45867,1000,8400,0,2,18],[10,45880,1700,8550,1,2,28],[10,45883,1000,8825,0,2,18],[10,45895,200,8425,0,2,18],[10,45903,500,7900,0,2,18],[10,45911,1000,7850,0,2,18],[10,45911,200,8300,0,2,18],[10,45964,2000,8650,1,2,28],[10,45972,100,8400,0,2,18],[10,45972,100,8400,0,2,18],[10,45983,200,8400,0,2,18],[10,46048,100,7650,0,2,18],[10,46052,300,7475,0,2,18],[10,46078,200,7300,0,2,18],[10,46121,500,6750,0,2,18],[11,43640,1000,320,0,0,18],[11,43738,100,268,0,0,18],[11,43753,300,264,0,0,18],[11,43754,100,274,1,0,28],[11,43754,300,274,1,0,28],[11,43768,900,264,0,0,18],[11,43768,100,264,0,0,18],[11,43773,1000,266,1,0,28],[11,43773,100,266,1,0,28],[11,43789,1000,246,0,0,18],[11,43794,1000,248,1,0,28],[11,43811,400,230,0,0,18],[11,43822,1000,220,0,0,18],[11,43836,700,230,0,0,18],[11,43837,400,234,1,0,28],[11,43837,1000,234,1,0,28],[11,43837,700,234,1,0,28],[11,43838,900,250,1,0,28],[11,43986,5000,160,0,0,18],[11,43987,5000,161,1,0,28],[11,44216,1000,650,0,1,18],[11,44218,1000,585,0,1,18],[11,44221,1000,545,0,1,18],[11,44231,500,480,0,1,18],[11,44243,1500,575,1,1,28],[11,44244,1000,550,0,1,18],[11,44252,2500,590,1,1,28],[11,44259,500,600,1,1,28],[12,43479,300,8825,0,0,18],[12,43483,300,9250,1,0,28],[12,43517,600,8975,0,0,18],[12,43543,600,9075,1,0,28],[12,43676,300,8325,0,0,18],[12,43691,200,8025,0,0,18],[12,43700,100,7500,0,0,18],[12,43704,200,7525,0,0,18],[12,43734,300,7600,1,0,28],[12,43740,100,6975,0,0,18],[12,43756,100,7400,1,0,28],[12,43762,200,8000,1,0,28],[12,43767,100,7725,1,0,28],[12,43769,100,7675,0,0,18],[12,43769,100,7675,0,0,18],[12,43802,400,7550,0,0,18],[12,43803,200,7425,0,0,18],[12,43808,100,7525,0,0,18],[12,43809,100,7625,1,0,28],[12,43812,400,7650,1,0,28],[12,43822,200,7900,1,0,28],[12,43825,200,7975,1,0,28],[12,43825,100,7975,1,0,28],[12,43850,200,7600,0,0,18],[12,43850,100,7600,0,0,18],[12,43850,300,7675,0,0,18],[12,43851,200,7825,1,0,28],[12,43852,300,7700,1,0,28],[12,43854,300,7625,0,0,18],[12,43857,200,7500,0,0,18],[12,43859,300,7400,0,0,18],[12,43875,300,7450,1,0,28],[12,43878,200,7575,1,0,28],[12,43879,300,7650,1,0,28],[12,43892,100,6650,0,0,18],[12,43892,100,6725,0,0,18],[12,43893,100,6800,0,0,18],[12,43893,100,6850,1,0,28],[12,43895,100,6950,0,0,18],[12,43896,100,6500,0,0,18],[12,43901,100,5650,0,0,18],[12,43903,100,5025,1,0,28],[12,43903,100,5025,1,0,28],[12,43910,200,3640,0,0,18],[12,43910,200,3640,0,0,18],[12,43910,100,3720,1,0,28],[12,43910,100,3720,1,0,28],[12,43917,100,3940,0,0,18],[12,43917,100,4020,1,0,28],[12,43917,100,4050,1,0,28],[12,43959,500,3800,0,0,18],[12,43962,100,3820,1,0,28],[12,43965,200,3580,0,0,18],[12,43971,200,3610,1,0,28],[12,43978,300,3620,0,0,18],[12,43979,200,3700,1,0,28],[12,43979,100,3700,1,0,28],[12,43980,300,3660,0,0,18],[12,43980,200,3660,0,0,18],[12,43980,500,3700,1,0,28],[12,43982,200,3820,1,0,28],[12,43993,200,4350,0,0,18],[12,43994,200,3820,1,0,28],[12,43998,200,4490,1,0,28],[12,44062,800,5050,0,1,18],[12,44070,800,5375,1,1,28],[12,44099,300,4420,1,0,28],[12,44187,400,6400,0,0,18],[12,44187,300,6400,0,0,18],[12,44187,300,6400,0,0,18],[12,44202,100,6450,0,0,18],[12,44207,200,6525,0,0,18],[12,44208,400,6625,1,0,28],[12,44210,300,6500,0,0,18],[12,44211,300,6300,0,0,18],[12,44217,100,6500,1,0,28],[12,44217,300,6500,1,0,28],[12,44218,200,6300,0,0,18],[12,44218,300,7700,1,0,28],[12,44278,100,6150,0,0,18],[12,44365,100,4920,0,0,18],[12,44365,100,4910,0,0,18],[12,44412,100,5050,1,0,28],[12,44412,100,5050,1,0,28],[12,44463,100,5100,0,0,18],[12,44469,100,5275,1,0,28],[12,44480,100,6350,1,0,28],[12,44481,200,6425,1,0,28],[12,44483,300,6775,1,0,28],[12,44483,300,6750,1,0,28],[12,44487,200,6950,1,0,28],[12,44490,300,7350,1,0,28],[12,45366,100,5750,0,2,18],[12,45372,100,5900,1,2,28],[12,45383,100,5300,0,2,18],[12,45406,200,5250,0,2,18],[12,45413,100,4990,0,2,18],[12,45414,200,4950,0,2,18],[12,45419,100,4700,0,2,18],[12,45427,100,5025,1,2,28],[12,45433,200,4800,0,2,18],[12,45442,100,4500,0,2,18],[12,45443,100,4450,0,2,18],[12,45444,300,4670,1,2,28],[12,45447,200,4630,0,2,18],[12,45453,200,4600,0,2,18],[12,45468,200,4450,0,2,18],[12,45469,500,4450,0,2,18],[12,45470,200,4590,1,2,28],[12,45474,500,4650,0,2,18],[12,45476,500,4630,0,2,18],[12,45481,500,4680,0,2,18],[12,45481,300,4690,0,2,18],[12,45503,200,4980,0,2,18],[12,45505,500,5075,1,2,28],[12,45505,300,5050,1,2,28],[12,45516,300,5125,1,2,28],[12,45523,2200,5325,1,2,28],[12,45524,300,5450,1,2,28],[12,45526,300,5325,0,2,18],[12,45526,500,5350,0,2,18],[12,45531,300,5350,0,2,18],[12,45536,1100,5750,1,2,28],[12,45547,500,5625,0,2,18],[12,45555,500,5750,0,2,18],[12,45555,2000,5750,0,2,18],[12,45558,500,5775,0,2,18],[12,45560,1000,5525,0,2,18],[12,45597,200,5250,0,2,18],[12,45627,200,4780,0,2,18],[12,45643,300,4550,0,2,18],[12,45692,500,4750,0,2,18],[12,45693,300,4500,0,2,18],[12,45762,200,4330,0,2,18],[12,45800,500,4500,0,2,18],[12,45859,200,4070,0,2,18],[12,45890,400,4480,1,2,28],[12,45966,200,4450,0,2,18],[12,46106,500,4050,0,2,18],[13,43453,1500,2570,0,0,19],[13,43475,1500,2720,1,0,29],[13,45491,200,1390,0,0,19],[13,45496,1500,1362,0,0,19],[13,45498,500,1315,0,0,19],[13,45503,500,1305,0,0,19],[13,45506,500,1330,0,0,19],[13,45531,500,1395,0,0,19],[13,45534,500,1410,1,0,29],[13,45537,500,1395,0,0,19],[13,45538,200,1380,0,0,19],[13,45539,200,1375,0,0,19],[13,45540,500,1405,1,0,29],[13,45544,500,1400,1,0,29],[13,45547,500,1445,0,0,19],[13,45553,500,1450,0,0,19],[13,45554,3100,1511,1,0,29],[13,45555,1000,1535,1,0,29],[13,45567,1000,1425,0,0,19],[13,45568,500,1390,0,0,19],[13,45569,1500,1363,0,0,19],[13,45576,3000,1435,1,0,29],[14,43453,1500,2570,0,0,19],[14,43475,1500,2720,1,0,29],[14,45491,200,1390,0,0,19],[14,45496,1500,1362,0,0,19],[14,45498,500,1315,0,0,19],[14,45503,500,1305,0,0,19],[14,45506,500,1330,0,0,19],[14,45531,500,1395,0,0,19],[14,45534,500,1410,1,0,29],[14,45537,500,1395,0,0,19],[14,45538,200,1380,0,0,19],[14,45539,200,1375,0,0,19],[14,45540,500,1405,1,0,29],[14,45544,500,1400,1,0,29],[14,45547,500,1445,0,0,19],[14,45553,500,1450,0,0,19],[14,45554,3100,1511,1,0,29],[14,45555,1000,1535,1,0,29],[14,45567,1000,1425,0,0,19],[14,45568,500,1390,0,0,19],[14,45569,1500,1363,0,0,19],[14,45576,3000,1435,1,0,29],[15,44026,2000,545,0,0,19],[15,44028,1000,540,0,0,19],[15,44032,500,515,0,0,19],[15,44039,2000,555,1,0,29],[15,44039,1000,555,1,0,29],[15,44039,500,555,1,0,29],[15,44041,1900,560,0,1,19],[15,44046,1000,525,0,1,19],[15,44055,2900,565,1,1,29],[15,44176,1000,680,0,1,19],[15,44181,1000,715,0,1,19],[15,44186,2000,750,0,1,19],[15,44188,500,705,0,1,19],[15,44195,1000,690,0,1,19],[15,44201,500,700,0,1,19],[15,44202,500,690,0,1,19],[15,44203,2000,690,0,1,19],[15,44207,6000,723,1,1,29],[15,44208,1500,725,1,1,29],[15,44210,1000,860,0,1,19],[15,44210,500,780,1,1,29],[15,44211,1500,935,1,1,29],[15,44217,1000,818,0,1,19],[15,44218,500,795,0,1,19],[15,44229,500,770,0,1,19],[15,44230,500,780,0,1,19],[15,44235,500,810,1,1,29],[15,44236,500,785,0,1,19],[15,44236,500,820,1,1,29],[15,44245,2000,813,1,1,29],[15,44284,500,795,0,1,19],[15,44287,300,785,0,1,19],[15,44291,800,800,1,1,29],[15,45044,2000,675,0,0,19],[15,45082,200,645,0,0,19],[15,45103,500,645,0,0,19],[15,45467,300,520,0,0,19],[15,45467,2000,520,0,0,19],[15,45485,2000,555,1,0,29],[15,45526,2000,555,0,0,19],[15,45560,5000,575,0,0,19],[15,45635,1000,555,0,1,19],[15,46014,11000,540,1,0,29],[16,44207,2000,248,0,0,18],[16,44210,1000,246,0,0,18],[16,44210,5000,244,0,0,18],[16,44215,500,230,0,0,18],[16,44217,5000,234,1,0,28],[16,44218,5000,230,0,0,18],[16,44225,500,214,0,0,18],[16,44228,400,216,0,0,18],[16,44243,200,238,0,0,18],[16,44249,500,232,0,0,18],[16,44253,2000,232,0,0,18],[16,44265,5000,244,1,0,28],[16,44271,500,246,1,0,28],[16,44271,500,246,1,0,28],[16,44271,2000,246,1,0,28],[16,44272,2000,244,0,0,18],[16,44272,2000,244,0,0,18],[16,44278,2000,248,1,0,28],[16,44278,1000,248,1,0,28],[16,44278,500,248,1,0,28],[16,44278,400,248,1,0,28],[16,44278,200,248,1,0,28],[16,44278,2000,248,1,0,28],[16,44278,2000,248,1,0,28],[16,44281,1500,234,0,0,18],[16,44287,1500,236,1,0,28],[16,44321,200,240,0,0,18],[16,44326,500,228,0,0,18],[16,44354,300,224,0,0,18],[16,44356,500,216,0,0,18],[16,44358,1000,212,0,0,18],[16,44365,1000,210,1,0,28],[16,44372,1000,202,0,0,18],[16,44372,1000,202,0,0,18],[16,44375,2000,197,0,0,18],[16,44384,2000,204,1,0,28],[16,44384,1000,204,1,0,28],[16,44390,1000,195,1,0,28],[16,44411,2000,192,0,0,18],[16,44470,500,202,1,0,28],[16,44470,2000,200,1,0,28],[16,44532,2000,224,0,0,18],[16,44540,2000,206,0,0,18],[16,44588,5000,185,0,0,18],[16,44626,1000,169,0,0,18],[16,44638,10000,184,0,0,18],[16,44718,1000,181,0,0,18],[16,44719,1000,175,0,0,18],[16,44813,1000,177,0,0,18],[16,44819,5000,183,0,0,18],[16,44840,2000,174,0,0,18],[16,44844,1000,170,0,0,18],[16,44901,100,160,0,0,18],[16,44977,900,167,0,0,18],[16,45029,2000,167,0,0,18],[16,45169,500,176,0,0,18],[16,45231,100,171,1,0,28],[16,45231,900,171,1,0,28],[16,45245,600,168,0,0,18],[16,45561,2900,161,0,0,18],[16,45722,1200,133,0,0,18],[16,45756,10800,144,0,0,18],[16,45863,2100,143,0,2,18],[16,45889,1900,139,0,2,18],[16,45950,400,134,0,2,18],[16,45959,800,133,0,2,18],[16,46035,55200,143,1,2,28],[17,43627,1000,434,0,0,18],[17,43628,1000,466,0,0,18],[17,43628,1000,470,0,0,18],[17,43629,500,460,0,0,18],[17,43630,1000,472,1,0,28],[17,43630,1000,472,1,0,28],[17,43630,1000,472,1,0,28],[17,43630,500,472,1,0,28],[18,45369,100,5300,0,2,19],[18,45372,100,5475,1,2,29],[19,45812,8800,404,0,2,18],[19,45819,100,472,0,2,18],[19,45820,4200,490,0,2,18],[19,45824,2800,490,0,2,18],[19,45824,5000,488,0,2,18],[19,45825,1000,442,0,2,18],[19,45825,10000,450,0,2,18],[19,45826,10000,458,0,2,18],[19,45827,2000,428,0,2,18],[19,45828,4000,418,0,2,18],[19,45831,1000,412,0,2,18],[19,45831,1000,398,0,2,18],[19,45833,2000,398,0,2,18],[19,45842,1000,388,0,2,18],[19,45847,2000,410,0,2,18],[19,45848,4000,410,1,2,28],[19,45852,8800,420,1,2,28],[19,45853,7600,438,0,2,18],[19,45853,2500,432,0,2,18],[19,45855,5000,450,0,2,18],[19,45859,13600,466,1,2,28],[19,45860,5000,478,0,2,18],[19,45860,5000,472,0,2,18],[19,45860,10000,462,0,2,18],[19,45860,63600,464,1,2,28],[19,45860,5000,446,0,2,18],[19,45861,5000,444,0,2,18],[19,45861,2000,436,0,2,18],[19,45861,5000,436,0,2,18],[19,45862,2500,432,0,2,18],[19,45863,1000,432,0,2,18],[19,45863,1000,430,0,2,18],[19,45867,1000,440,0,2,18],[19,45867,22500,470,1,2,28],[19,45869,5000,444,0,2,18],[19,45869,5000,438,0,2,18],[19,45869,5000,430,0,2,18],[19,45873,2000,436,0,2,18],[19,45873,5000,430,0,2,18],[19,45874,2000,424,0,2,18],[19,45875,10000,448,1,2,28],[19,45875,14000,468,1,2,28],[19,45876,5000,470,0,2,18],[19,45876,5000,460,0,2,18],[19,45876,10000,446,0,2,18],[19,45877,5000,446,0,2,18],[19,45877,10000,450,0,2,18],[19,45880,22300,440,0,2,18],[19,45883,1000,444,0,2,18],[19,45884,2000,436,0,2,18],[19,45890,60300,492,1,2,28],[19,45894,5000,480,0,2,18],[19,45895,5000,492,1,2,28],[19,45896,10000,472,0,2,18],[19,45896,10000,482,1,2,28],[19,45896,10000,472,0,2,18],[19,45897,10000,480,1,2,28],[19,45898,5000,470,0,2,18],[19,45898,2000,464,0,2,18],[19,45898,3000,460,0,2,18],[19,45901,10000,482,1,2,28],[19,45901,10000,472,0,2,18],[19,45901,10000,484,1,2,28],[19,45901,15000,484,0,2,18],[19,45902,15000,498,1,2,28],[19,45904,4000,510,0,2,18],[19,45904,2000,500,0,2,18],[19,45904,2000,494,0,2,18],[19,45908,8000,515,1,2,28],[19,45918,10000,550,0,2,18],[19,45919,10000,650,1,2,28],[19,45922,2000,585,0,2,18],[19,45922,10000,615,0,2,18],[19,45925,12000,705,1,2,28],[19,45925,5000,710,0,2,18],[19,45926,5000,690,0,2,18],[19,45929,10000,785,1,2,28],[19,45943,10000,1020,0,2,18],[19,45944,3000,1140,0,2,18],[19,45944,13000,1095,1,2,28],[19,45944,20800,1110,0,2,18],[19,45945,20800,1050,1,2,28],[19,45945,1000,1050,0,2,18],[19,45945,3000,1045,0,2,18],[19,45945,1000,1020,0,2,18],[19,45946,1000,1060,0,2,18],[19,45947,6000,1090,1,2,28],[19,45947,3600,1030,0,2,18],[19,45950,500,980,0,2,18],[19,45952,1000,910,0,2,18],[19,45952,1000,920,0,2,18],[19,45954,1000,910,0,2,18],[19,45955,500,880,0,2,18],[19,45965,2000,965,0,2,18],[19,45966,9600,1000,1,2,28],[19,45967,10000,1005,0,2,18],[19,45967,2000,980,0,2,18],[19,45972,10000,985,0,2,18],[19,45972,2000,995,0,2,18],[19,45973,1000,980,0,2,18],[19,45973,1000,995,0,2,18],[19,45975,1000,990,0,2,18],[19,45981,1000,965,0,2,18],[19,45983,2000,970,0,2,18],[19,45985,4900,1010,0,2,18],[19,45985,30000,1030,1,2,28],[19,45986,10000,990,0,2,18],[19,45986,5000,990,0,2,18],[19,45987,5000,980,0,2,18],[19,45993,24900,1005,1,2,28],[19,46003,2000,1170,0,2,18],[19,46003,2000,1225,1,2,28],[19,46013,3600,1160,0,2,18],[19,46014,1000,1160,0,2,18],[19,46021,500,1100,0,2,18],[19,46024,2000,1160,0,2,18],[19,46024,1000,1180,0,2,18],[19,46024,8100,1185,1,2,28],[19,46028,10000,1265,0,2,18],[19,46029,1000,1240,0,2,18],[19,46030,500,1200,0,2,18],[19,46034,3000,1270,0,2,18],[19,46034,5000,1300,0,2,18],[19,46034,500,1270,0,2,18],[19,46035,500,1250,0,2,18],[19,46035,1000,1235,0,2,18],[19,46035,1000,1210,0,2,18],[19,46037,1300,1220,0,2,18],[19,46043,23800,1340,1,2,28],[19,46043,1000,1350,0,2,18],[19,46043,1000,1355,0,2,18],[19,46043,1500,1285,0,2,18],[19,46043,500,1310,0,2,18],[19,46043,2000,1280,0,2,18],[19,46044,1000,1250,0,2,18],[19,46048,2000,1270,0,2,18],[19,46049,500,1250,0,2,18],[19,46049,5000,1320,1,2,28],[19,46050,4500,1110,1,2,28],[19,46052,2000,1070,0,2,18],[19,46056,1000,920,0,2,18],[19,46062,3000,970,1,2,28],[20,43979,500,1280,0,0,19],[20,43980,500,1300,1,0,29],[20,43985,500,1355,0,0,19],[20,43986,300,1325,0,0,19],[20,43992,200,1200,0,0,19],[20,43992,300,1200,0,0,19],[20,43993,500,1230,1,0,29],[20,43997,400,1200,0,0,19],[20,44004,400,1220,1,0,29],[20,44039,800,1095,0,0,19],[20,44077,500,830,0,0,19],[20,44172,200,1200,1,0,29],[20,44172,800,1200,1,0,29],[20,44172,500,1200,1,0,29],[20,44176,300,1230,1,0,29],[20,44176,300,1230,1,0,29],[20,45257,300,975,0,2,19],[20,45264,100,1010,0,2,19],[20,45265,300,1035,1,2,29],[20,45265,100,1035,1,2,29],[20,45275,200,1590,0,2,19],[20,45276,200,1625,1,2,29],[20,45302,200,1100,0,0,19],[20,45309,200,1130,1,0,29],[20,45335,500,980,0,2,19],[20,45337,500,1005,1,2,29],[20,45350,1000,965,0,2,19],[20,45352,1000,985,1,2,29],[20,45407,1000,935,0,2,19],[20,45408,500,920,0,2,19],[20,45408,500,900,0,2,19],[20,45408,500,895,0,2,19],[20,45411,1000,935,1,2,29],[20,45411,500,935,1,2,29],[20,45411,500,935,1,2,29],[20,45411,500,935,1,2,29],[20,45420,1000,970,0,2,19],[20,45426,500,970,0,2,19],[20,45427,500,1000,1,2,29],[20,45427,1000,1000,1,2,29],[20,45448,1000,980,0,2,19],[20,45448,500,970,0,2,19],[20,45450,2000,970,0,2,19],[20,45453,1000,1025,1,2,29],[20,45453,500,1025,1,2,29],[20,45453,2000,1025,1,2,29],[20,45587,2000,1040,0,2,19],[20,45588,1000,1035,0,2,19],[20,45588,900,1030,0,2,19],[20,45596,500,1010,0,2,19],[20,45600,1000,970,0,2,19],[20,45603,500,895,0,2,19],[20,45608,500,910,0,2,19],[20,45635,1000,935,0,2,19],[20,45639,1000,890,0,2,19],[20,45646,500,830,0,2,19],[20,45650,500,915,1,2,29],[20,45650,500,915,1,2,29],[20,45650,1000,915,1,2,29],[20,45653,1000,885,0,2,19],[20,45659,1000,930,0,2,19],[20,45663,500,980,1,2,29],[20,45663,1000,980,1,2,29],[20,45663,1000,980,1,2,29],[20,45663,1000,980,1,2,29],[20,45670,500,1080,1,2,29],[20,45670,2000,1080,1,2,29],[20,45670,1000,1080,1,2,29],[20,45670,1000,1080,1,2,29],[20,45670,900,1080,1,2,29],[20,45672,2000,940,0,2,19],[20,45680,1000,930,0,2,19],[20,45680,1000,920,0,2,19],[20,45693,2000,950,1,2,29],[20,45693,1000,950,1,2,29],[20,45693,1000,950,1,2,29],[20,45695,2900,810,0,2,19],[20,45705,2900,830,1,2,29],[20,45707,1000,850,0,2,19],[20,45741,400,640,0,2,19],[20,45756,1000,620,0,2,19],[20,45757,1400,670,1,2,29],[20,45770,700,770,0,2,19],[20,45772,1000,755,0,2,19],[20,45777,1000,750,0,2,19],[20,45779,1000,740,0,2,19],[20,45783,2000,770,1,2,29],[20,45784,2700,840,1,2,29],[21,45547,1000,1220,0,2,19],[21,45552,1000,1160,0,2,19],[21,45554,1000,1250,1,2,29],[21,45554,1000,1250,1,2,29],[21,45582,1000,1270,0,2,19],[21,45587,1000,1250,0,2,19],[21,45601,500,1140,0,2,19],[21,45665,1000,915,0,2,19],[21,45670,1000,905,0,2,19],[21,45680,2000,945,1,2,29],[21,45896,2500,1015,1,2,29],[22,43955,500,2230,0,0,18],[22,43956,300,2390,0,0,18],[22,43956,500,2460,1,0,28],[22,43957,300,2460,1,0,28],[22,43971,500,2330,0,0,18],[22,43977,500,2350,1,0,28],[22,45131,300,2130,0,0,18],[22,45222,100,1595,0,0,18],[22,45222,100,1595,0,0,18],[22,45236,100,1695,1,0,28],[22,45280,100,1710,1,0,28],[22,45296,200,1570,0,0,18],[22,45328,200,1600,1,0,28],[22,45341,200,1410,0,2,18],[22,45344,300,1380,0,2,18],[22,45349,500,1405,1,2,28],[22,45359,300,1290,0,0,18],[22,45483,200,1195,0,0,18],[22,45553,200,1320,1,0,28],[22,45553,300,1320,1,0,28],[22,45588,500,1135,0,0,18],[22,45784,500,1250,1,0,28],[22,45792,300,1315,1,0,28],[23,45811,20000,121,0,2,18],[23,45811,10000,123,0,2,18],[23,45818,8400,124,0,2,18],[23,45824,38400,135,1,2,28],[23,45825,10000,127,0,2,18],[23,45831,2000,119,0,2,18],[23,45832,1000,118,0,2,18],[23,45833,200,117,0,2,18],[23,45838,10000,118,0,2,18],[23,45845,400,112,0,2,18],[23,45856,1000,117,0,2,18],[23,45862,5000,117,0,2,18],[23,45877,10000,110,0,2,18],[23,45904,20000,112,0,2,18],[23,45916,59600,119,1,2,28],[23,46014,1000,382,0,2,18],[23,46014,7800,382,0,2,18],[23,46015,200,378,0,2,18],[23,46020,5000,370,0,2,18],[23,46020,5000,368,0,2,18],[23,46021,5000,368,0,2,18],[23,46024,10000,378,0,2,18],[23,46024,10000,390,0,2,18],[23,46024,44000,398,1,2,28],[23,46024,20000,418,0,2,18],[23,46027,20000,462,1,2,28],[23,46034,10000,460,0,2,18],[23,46035,2000,430,0,2,18],[23,46035,2000,410,0,2,18],[23,46043,1000,390,0,2,18],[23,46044,20000,380,0,2,18],[23,46048,1000,358,0,2,18],[23,46051,1000,260,0,2,18],[23,46051,2000,264,0,2,18],[23,46056,1000,240,0,2,18],[23,46057,1000,260,0,2,18],[23,46063,1000,250,0,2,18],[23,46073,1000,294,0,2,18],[23,46077,500,276,0,2,18],[23,46083,300,256,0,2,18],[23,46090,500,220,0,2,18],[23,46118,5000,248,0,2,18],[23,46125,1000,244,0,2,18],[24,45868,10000,125,0,2,18],[24,45868,10000,128,1,2,28],[24,45882,10000,117,0,2,18],[24,45883,10000,125,1,2,28],[25,45044,100,22000,0,2,19],[25,45792,100,20000,1,2,29],[26,45847,1100,190,0,2,18],[26,45868,1100,1650,1,2,28],[26,45917,2000,1480,0,2,18],[26,45918,2000,1550,1,2,28],[26,45938,1000,2180,0,2,18],[26,45939,500,2160,0,2,18],[26,45940,1500,2250,1,2,28],[26,45940,6000,2250,0,2,18],[26,45943,1000,2290,0,2,18],[26,45944,1000,2250,0,2,18],[26,45944,1000,2130,0,2,18],[26,45945,2000,1960,0,2,18],[26,45947,200,1870,0,2,18],[26,45952,1000,1880,0,2,18],[26,45993,1000,2010,0,2,18],[26,45995,1000,1960,0,2,18],[26,45999,1000,1945,0,2,18],[26,46001,500,1900,0,2,18],[26,46020,1000,1675,0,2,18],[26,46024,500,1710,0,2,18],[26,46024,500,1740,0,2,18],[26,46065,500,1190,0,2,18],[26,46092,200,845,0,2,18],[26,46133,400,1170,0,2,18],[27,46001,500,4150,0,2,18],[27,46003,1000,4090,0,2,18],[27,46003,1100,3930,0,2,18],[27,46007,2600,4120,1,2,28],[28,43451,500,6775,0,0,18],[28,43452,500,7000,1,0,28],[28,43455,300,7200,0,0,18],[28,43472,300,7425,1,0,28],[28,43766,100,6325,0,0,18],[28,43766,200,6625,0,0,18],[28,43774,100,7000,1,0,28],[28,43774,200,7000,1,0,28],[28,43790,400,6900,0,0,18],[28,43797,400,6975,1,0,28],[28,45076,100,5100,0,0,18],[28,45076,100,5100,0,0,18],[28,45082,100,4940,0,0,18],[28,45086,100,5075,1,0,28],[28,45089,100,5100,1,0,28],[28,45093,100,5225,1,0,28],[28,45561,1500,4830,0,0,18],[28,45581,1500,5000,1,0,28],[29,43577,700,157,0,0,19],[29,43577,500,200,0,0,19],[29,43577,500,220,0,0,19],[29,43577,1000,248,0,0,19],[29,43578,500,170,0,0,19],[29,43578,700,172,1,0,29],[29,43579,1000,166,0,0,19],[29,43579,1000,167,0,0,19],[29,43581,500,130,0,0,19],[29,43588,1000,108,0,0,19],[29,43594,1000,98,0,0,19],[29,43602,1000,67,0,0,19],[29,43605,500,82,1,0,29],[29,43605,500,82,1,0,29],[29,43776,2000,50,0,0,19],[30,45946,1000,2490,0,2,18],[30,45947,500,2200,0,2,18],[30,45947,300,2290,0,2,18],[30,45951,2100,2280,0,2,18],[30,45981,1000,2250,0,2,18],[30,45985,4900,2400,1,2,28],[30,46042,1000,2000,0,2,18],[30,46042,1000,2050,0,2,18],[30,46048,2000,1665,1,2,28],[31,45874,5000,228,0,2,18],[31,45874,2000,218,0,2,18],[31,45875,4000,222,0,2,18],[31,45876,10000,224,0,2,18],[31,45880,21000,226,1,2,28],[31,45929,10000,286,0,2,18],[31,45930,5000,280,0,2,18],[31,45930,1000,274,0,2,18],[31,45931,16000,300,1,2,28],[31,45932,10000,292,0,2,18],[31,45932,10000,324,0,2,18],[31,45933,2000,340,0,2,18],[31,45936,3000,328,0,2,18],[31,45938,500,344,0,2,18],[31,45939,20000,368,0,2,18],[31,45939,10000,368,0,2,18],[31,45939,2000,354,0,2,18],[31,45943,57500,356,1,2,28],[31,46006,300,580,0,2,18],[31,46008,5000,560,0,2,18],[31,46009,2000,540,0,2,18],[31,46014,7300,575,1,2,28],[31,46029,1000,820,0,2,18],[31,46029,5000,860,0,2,18],[31,46029,5000,805,0,2,18],[31,46030,2000,805,0,2,18],[31,46034,5000,810,0,2,18],[31,46034,1000,790,0,2,18],[31,46035,500,750,0,2,18],[31,46050,19500,575,1,2,28],[31,46106,5000,450,0,2,18],[31,46107,2000,442,0,2,18],[31,46108,1000,442,0,2,18],[31,46114,8000,478,1,2,28],[31,46114,1000,480,0,2,18],[31,46114,2000,478,0,2,18],[31,46114,2000,474,0,2,18],[31,46118,5000,492,1,2,28],[31,46118,2000,488,0,2,18],[31,46118,2000,494,0,2,18],[31,46120,4000,505,1,2,28],[31,46122,2500,520,0,2,18],[31,46127,2000,570,0,2,18],[31,46135,100,530,0,2,18],[31,46140,200,496,0,2,18],[31,46149,2700,515,0,2,18],[32,44207,2000,248,0,0,18],[32,44210,1000,246,0,0,18],[32,44210,5000,244,0,0,18],[32,44215,500,230,0,0,18],[32,44217,5000,234,1,0,28],[32,44218,5000,230,0,0,18],[32,44225,500,214,0,0,18],[32,44228,400,216,0,0,18],[32,44243,200,238,0,0,18],[32,44249,500,232,0,0,18],[32,44253,2000,232,0,0,18],[32,44265,5000,244,1,0,28],[32,44271,500,246,1,0,28],[32,44271,500,246,1,0,28],[32,44271,2000,246,1,0,28],[32,44272,2000,244,0,0,18],[32,44272,2000,244,0,0,18],[32,44278,2000,248,1,0,28],[32,44278,1000,248,1,0,28],[32,44278,500,248,1,0,28],[32,44278,400,248,1,0,28],[32,44278,200,248,1,0,28],[32,44278,2000,248,1,0,28],[32,44278,2000,248,1,0,28],[32,44281,1500,234,0,0,18],[32,44287,1500,236,1,0,28],[32,44321,200,240,0,0,18],[32,44326,500,228,0,0,18],[32,44354,300,224,0,0,18],[32,44356,500,216,0,0,18],[32,44358,1000,212,0,0,18],[32,44365,1000,210,1,0,28],[32,44372,1000,202,0,0,18],[32,44372,1000,202,0,0,18],[32,44375,2000,197,0,0,18],[32,44384,2000,204,1,0,28],[32,44384,1000,204,1,0,28],[32,44390,1000,195,1,0,28],[32,44411,2000,192,0,0,18],[32,44470,500,202,1,0,28],[32,44470,2000,200,1,0,28],[32,44532,2000,224,0,0,18],[32,44540,2000,206,0,0,18],[32,44588,5000,185,0,0,18],[32,44626,1000,169,0,0,18],[32,44638,10000,184,0,0,18],[32,44718,1000,181,0,0,18],[32,44719,1000,175,0,0,18],[32,44813,1000,177,0,0,18],[32,44819,5000,183,0,0,18],[32,44840,2000,174,0,0,18],[32,44844,1000,170,0,0,18],[32,44901,100,160,0,0,18],[32,44977,900,167,0,0,18],[32,45029,2000,167,0,0,18],[32,45169,500,176,0,0,18],[32,45231,100,171,1,0,28],[32,45231,900,171,1,0,28],[32,45245,600,168,0,0,18],[32,45561,2900,161,0,0,18],[32,45722,1200,133,0,0,18],[32,45756,10800,144,0,0,18],[32,45863,2100,143,0,2,18],[32,45889,1900,139,0,2,18],[32,45950,400,134,0,2,18],[32,45959,800,133,0,2,18],[32,46035,55200,143,1,2,28],[33,43405,1100,2980,0,0,19],[33,43405,2200,2990,0,0,19],[33,43411,1100,3240,1,0,29],[33,43411,2200,3240,1,0,29],[33,43434,1000,3600,0,0,19],[33,43462,500,3580,0,0,19],[33,43490,1000,3780,1,0,29],[33,43518,300,3890,0,0,19],[33,43521,400,3860,0,0,19],[33,43525,400,3850,0,0,19],[33,43529,500,3870,1,0,29],[33,43529,300,3870,1,0,29],[33,43529,400,3870,1,0,29],[33,43529,400,3870,1,0,29],[33,43580,300,4430,0,0,19],[33,43584,200,4360,0,0,19],[33,43587,300,4340,0,0,19],[33,43593,100,4240,0,0,19],[33,43598,200,4120,0,0,19],[33,43600,100,3890,0,0,19],[33,43600,100,3890,0,0,19],[33,43600,200,3970,0,0,19],[33,43627,500,4200,0,0,19],[33,43627,300,4240,1,0,29],[33,43627,200,4240,1,0,29],[33,43627,300,4240,1,0,29],[33,43627,100,4240,1,0,29],[33,43627,200,4240,1,0,29],[33,43627,100,4240,1,0,29],[33,43628,500,4200,0,0,19],[33,43641,500,4330,1,0,29],[33,43661,500,4540,0,0,19],[33,43669,300,4470,0,0,19],[33,43672,100,4450,1,0,29],[33,43672,500,4450,1,0,29],[33,43675,200,4470,1,0,29],[33,43675,500,4470,1,0,29],[33,43675,300,4470,1,0,29],[33,43685,400,4280,0,0,19],[33,43686,400,4330,1,0,29],[33,43706,300,4170,0,0,19],[33,43707,500,4210,0,0,19],[33,43714,500,4280,0,0,19],[33,43714,300,4270,1,0,29],[33,43733,100,4080,0,0,19],[33,43735,100,4170,0,0,19],[33,43738,100,4120,0,0,19],[33,43740,100,3950,0,0,19],[33,43740,100,3960,0,0,19],[33,43741,100,3850,0,0,19],[33,43742,100,3930,1,0,29],[33,43746,100,3930,1,0,29],[33,43746,100,3930,1,0,29],[33,43762,500,4290,1,0,29],[33,43766,300,4220,0,0,19],[33,43769,300,4190,0,0,19],[33,43774,100,4270,1,0,29],[33,43774,100,4270,1,0,29],[33,43774,300,4270,1,0,29],[33,43774,300,4270,1,0,29],[33,43775,300,4220,0,0,19],[33,43775,300,4230,0,0,19],[33,43776,300,4010,0,0,19],[33,43776,500,4090,0,0,19],[33,43780,300,3950,0,0,19],[33,43783,300,3910,0,0,19],[33,43796,500,4180,1,0,29],[33,43797,500,4060,0,0,19],[33,43797,500,4120,0,0,19],[33,43797,500,4120,0,0,19],[33,43797,200,4130,0,0,19],[33,43798,500,4110,1,0,29],[33,43801,500,4210,1,0,29],[33,43801,500,4170,1,0,29],[33,43801,500,4210,1,0,29],[33,43802,500,4200,0,0,19],[33,43803,600,4140,0,0,19],[33,43803,200,4160,1,0,29],[33,43804,100,4220,1,0,29],[33,43804,300,4220,1,0,29],[33,43804,600,4160,1,0,29],[33,43805,200,4190,0,0,19],[33,43808,200,4170,0,0,19],[33,43808,300,4200,0,0,19],[33,43812,300,4280,1,0,29],[33,43817,200,4380,1,0,29],[33,43817,200,4380,1,0,29],[33,43818,200,4330,0,0,19],[33,43818,100,4350,0,0,19],[33,43818,100,4370,0,0,19],[33,43819,400,4350,0,0,19],[33,43822,300,4400,1,0,29],[33,43822,300,4400,1,0,29],[33,43822,300,4400,1,0,29],[33,43822,500,4400,1,0,29],[33,43832,300,4410,1,0,29],[33,43832,200,4410,1,0,29],[33,43832,100,4410,1,0,29],[33,43832,100,4410,1,0,29],[33,43833,400,4400,1,0,29],[33,43836,800,4370,0,0,19],[33,43837,800,4400,1,0,29],[33,43888,300,4250,0,0,19],[33,43888,200,4270,0,0,19],[33,43889,300,4100,1,0,29],[33,43889,200,4100,1,0,29],[33,43906,100,3500,0,0,19],[33,43907,100,3300,0,0,19],[33,43908,100,3150,0,0,19],[33,43908,100,3260,0,0,19],[33,43908,100,3300,0,0,19],[33,43908,100,3370,1,0,29],[33,43908,100,3370,1,0,29],[33,43909,100,2930,0,0,19],[33,43910,100,2800,0,0,19],[33,43910,200,2830,0,0,19],[33,43910,200,2900,0,0,19],[33,43914,100,2450,0,0,19],[33,43916,100,2570,1,0,29],[33,43916,100,2830,1,0,29],[33,43916,100,2830,1,0,29],[33,43917,200,3250,1,0,29],[33,43917,100,3250,1,0,29],[33,43920,200,3010,0,0,19],[33,43920,100,3030,1,0,29],[33,43922,200,3000,0,0,19],[33,43922,200,3040,1,0,29],[33,43923,200,2830,0,0,19],[33,43923,200,2850,1,0,29],[33,43927,400,2920,0,0,19],[33,43928,300,2990,0,0,19],[33,43929,100,2840,0,0,19],[33,43929,300,3010,1,0,29],[33,43942,100,2720,0,0,19],[33,43944,100,2820,1,0,29],[33,43945,200,2670,0,0,19],[33,43949,200,2590,0,0,19],[33,43962,200,2620,1,0,29],[33,43964,200,2470,0,0,19],[33,43965,300,2400,0,0,19],[33,43971,200,2490,1,0,29],[33,43971,300,2470,1,0,29],[33,43979,200,2770,1,0,29],[33,43985,1000,3100,0,0,19],[33,43986,300,3040,0,0,19],[33,43986,100,3070,1,0,29],[33,43986,200,3070,1,0,29],[33,43986,400,3070,1,0,29],[33,43990,200,3320,1,0,29],[33,43990,1000,3320,1,0,29],[33,43990,300,3320,1,0,29],[33,43991,300,3270,0,0,19],[33,43991,1000,3300,0,0,19],[33,43992,500,3120,0,0,19],[33,43994,100,2960,0,0,19],[33,43997,200,3010,0,0,19],[33,43998,300,3100,1,0,29],[33,44008,100,3030,0,0,19],[33,44008,100,3040,0,0,19],[33,44008,300,3060,0,0,19],[33,44013,200,3050,1,0,29],[33,44020,500,3150,1,0,29],[33,44020,100,3150,1,0,29],[33,44046,300,2990,0,0,19],[33,44046,300,3020,0,0,19],[33,44047,300,3070,1,0,29],[33,44047,300,3070,1,0,29],[33,44057,100,3340,1,0,29],[33,44057,1000,3340,1,0,29],[33,44057,100,3340,1,0,29],[33,44057,100,3340,1,0,29],[33,44057,300,3340,1,0,29],[33,44077,1000,3600,0,0,19],[33,44077,1500,3624,0,1,19],[33,44078,200,3530,0,0,19],[33,44078,300,3500,0,1,19],[33,44091,200,3190,0,0,19],[33,44104,300,3010,0,0,19],[33,44105,300,3110,1,0,29],[33,44140,1000,3510,1,0,29],[33,44140,200,3500,1,0,29],[33,44140,200,3480,1,0,29],[33,44144,1600,3668,1,1,29],[33,44145,200,3880,1,1,29],[33,44147,1500,4000,0,1,19],[33,44152,300,3960,0,1,19],[33,44153,1800,4020,1,1,29],[33,44186,500,4280,0,1,19],[33,44187,200,4220,0,1,19],[33,44188,300,4120,0,1,19],[33,44200,300,4300,1,1,29],[33,44204,700,4330,1,1,29],[33,44365,200,3980,0,0,19],[33,44372,200,4020,1,0,29],[33,44375,300,3950,0,0,19],[33,44376,100,3910,0,0,19],[33,44376,100,3910,0,0,19],[33,44379,200,3990,0,0,19],[33,44379,100,4030,1,0,29],[33,44379,100,4020,1,0,29],[33,44382,200,3940,0,0,19],[33,44382,500,3900,0,0,19],[33,44384,200,3850,0,0,19],[33,44386,300,3820,0,0,19],[33,44386,300,3820,0,0,19],[33,44411,200,3740,0,0,19],[33,44412,200,3830,1,0,29],[33,44413,200,4040,1,0,29],[33,44413,200,4040,1,0,29],[33,44413,300,4050,1,0,29],[33,44413,300,4060,1,0,29],[33,44424,300,3910,1,0,29],[33,44424,500,3910,1,0,29],[33,44424,200,3910,1,0,29],[33,44427,300,3870,0,0,19],[33,44427,200,3870,0,0,19],[33,44433,300,3900,1,0,29],[33,44435,200,3880,1,0,29],[33,44529,500,4150,0,0,19],[33,44531,300,4070,0,0,19],[33,44531,300,4100,0,0,19],[33,44536,400,4170,0,0,19],[33,44537,300,4200,1,0,29],[33,44537,400,4200,1,0,29],[33,44537,500,4200,1,0,29],[33,44537,300,4200,1,0,29],[33,44565,500,4200,0,0,19],[33,44566,500,4150,0,0,19],[33,44571,500,4180,0,0,19],[33,44571,300,4180,0,0,19],[33,44571,200,4180,0,0,19],[33,44581,300,4140,0,0,19],[33,44582,200,4110,0,0,19],[33,44586,500,4060,0,0,19],[33,44599,500,4330,1,0,29],[33,44599,500,4330,1,0,29],[33,44599,500,4330,1,0,29],[33,44600,200,4450,1,0,29],[33,44600,200,4450,1,0,29],[33,44600,300,4450,1,0,29],[33,44610,300,4430,1,0,29],[33,44624,500,4650,1,0,29],[33,44671,500,4770,0,0,19],[33,44677,500,4910,1,0,29],[33,44690,200,4530,0,0,19],[33,44714,200,4530,0,0,19],[33,44715,200,4570,1,0,29],[33,44715,200,4570,1,0,29],[33,44718,200,4450,0,0,19],[33,44809,200,4500,1,0,29],[33,44824,200,4570,0,0,19],[33,44833,200,4520,0,0,19],[33,44833,200,4470,0,0,19],[33,44838,200,4630,1,0,29],[33,44838,200,4630,1,0,29],[33,44838,200,4630,1,0,29],[33,44896,200,4950,0,0,19],[33,44929,100,4870,0,0,19],[33,44929,100,4780,0,0,19],[33,44931,100,4660,0,0,19],[33,44937,100,4400,0,0,19],[33,44938,100,4490,1,0,29],[33,44939,100,4460,0,0,19],[33,44939,100,4460,0,0,19],[33,44946,100,4650,1,0,29],[33,44951,100,4590,0,0,19],[33,44953,100,4650,1,0,29],[33,44953,100,4650,1,0,29],[33,44966,100,4830,1,0,29],[33,44977,100,4870,0,0,19],[33,44977,100,4870,0,0,19],[33,45015,200,4760,0,0,19],[33,45027,200,4870,1,0,29],[33,45030,200,5050,1,0,29],[33,45030,100,5050,1,0,29],[33,45030,100,5050,1,0,29],[33,45030,100,5050,1,0,29],[33,45030,100,5050,1,0,29],[33,45222,100,5000,0,0,19],[33,45259,100,5300,0,2,19],[33,45261,100,5400,1,0,29],[33,45265,100,5425,0,2,19],[33,45266,100,5400,0,2,19],[33,45273,100,5300,0,2,19],[33,45274,200,5525,1,2,29],[33,45294,100,5600,0,2,19],[33,45299,200,5625,0,2,19],[33,45307,500,5850,1,2,29],[33,45313,100,5700,0,2,19],[33,45316,100,5600,0,2,19],[33,45316,100,5650,0,2,19],[33,45328,300,5850,1,2,29],[33,45384,100,5650,0,2,19],[33,45387,200,5650,0,2,19],[33,45398,200,5350,0,2,19],[33,45398,200,5400,0,2,19],[33,45411,500,4770,0,2,19],[33,45411,200,4800,0,2,19],[33,45412,200,4950,1,2,29],[33,45412,500,4910,1,2,29],[33,45414,1000,4700,0,2,19],[33,45414,300,4750,0,2,19],[33,45414,500,4780,0,2,19],[33,45414,200,4820,0,2,19],[33,45415,1000,4770,1,2,29],[33,45418,200,4750,0,2,19],[33,45418,500,4820,1,2,29],[33,45419,500,4690,0,2,19],[33,45419,500,4750,0,2,19],[33,45428,300,4930,1,2,29],[33,45428,300,4930,1,2,29],[33,45428,500,4930,1,2,29],[33,45432,500,4850,0,2,19],[33,45432,300,4870,0,2,19],[33,45433,100,4680,0,2,19],[33,45433,100,4680,0,2,19],[33,45433,100,4700,0,2,19],[33,45439,200,4580,0,2,19],[33,45441,200,4450,0,2,19],[33,45447,300,4450,0,2,19],[33,45447,500,4500,0,2,19],[33,45448,1000,4400,0,2,19],[33,45450,300,4400,0,2,19],[33,45455,500,4330,0,2,19],[33,45457,300,4180,0,2,19],[33,45462,200,4170,0,2,19],[33,45463,500,4230,1,2,29],[33,45468,300,4290,0,2,19],[33,45474,500,4610,0,2,19],[33,45474,300,4620,1,2,29],[33,45475,1000,4580,0,2,19],[33,45477,500,4800,1,2,29],[33,45481,1000,4750,0,2,19],[33,45481,200,4770,0,2,19],[33,45482,1500,4800,1,2,29],[33,45485,500,4900,1,2,29],[33,45488,500,4840,0,2,19],[33,45488,1000,4890,0,2,19],[33,45489,200,4780,0,2,19],[33,45491,500,4880,1,2,29],[33,45492,300,4870,0,2,19],[33,45492,200,4880,0,2,19],[33,45496,1000,4790,0,2,19],[33,45496,1000,4860,0,2,19],[33,45498,100,4670,0,2,19],[33,45498,300,4700,0,2,19],[33,45502,500,4780,1,2,29],[33,45503,300,4680,0,2,19],[33,45503,500,4720,0,2,19],[33,45506,500,4720,0,2,19],[33,45509,500,4620,0,2,19],[33,45531,1200,5125,0,2,19],[33,45545,600,5125,0,2,19],[33,45545,300,5150,0,2,19],[33,45545,900,5250,1,2,29],[33,45546,300,5175,0,2,19],[33,45546,300,5200,0,2,19],[33,45547,1000,5175,0,2,19],[33,45552,500,5300,0,2,19],[33,45554,2000,5475,1,2,29],[33,45555,4000,5375,0,2,19],[33,45555,1000,5400,0,2,19],[33,45555,2000,5400,1,2,29],[33,45558,3000,5475,1,2,29],[33,45560,2000,5225,0,2,19],[33,45560,1000,5250,0,2,19],[33,45560,1000,5250,0,2,19],[33,45560,1000,5325,0,2,19],[33,45560,1000,5250,1,2,29],[33,45560,5000,5250,1,2,29],[33,45561,500,5050,0,2,19],[33,45561,500,5100,0,2,19],[33,45561,500,5125,0,2,19],[33,45561,1000,5150,0,2,19],[33,45562,500,5125,1,2,29],[33,45565,700,4950,0,2,19],[33,45565,2100,4980,1,2,29],[33,45566,700,5050,1,2,29],[33,45567,200,5000,0,2,19],[33,45572,300,4820,0,2,19],[33,45573,300,4930,1,2,29],[33,45574,1000,4980,0,2,19],[33,45574,1000,5000,0,2,19],[33,45575,2000,4870,0,2,19],[33,45575,500,4900,0,2,19],[33,45575,1000,4880,1,2,29],[33,45587,1000,4900,0,2,19],[33,45630,500,4330,0,2,19],[33,45637,500,4400,1,2,29],[33,45639,300,4220,0,2,19],[33,45664,300,4050,0,2,19],[33,45670,400,3930,0,2,19],[33,45672,300,3960,1,2,29],[33,45679,100,4270,1,2,29],[33,45691,500,4180,0,2,19],[33,45692,500,4260,1,2,29],[33,45709,100,3900,0,2,19],[33,45729,500,3830,0,2,19],[33,45758,300,3630,0,2,19],[33,45758,100,3620,0,2,19],[33,45785,300,3830,0,2,19],[33,45791,500,4200,0,2,19],[33,45814,300,4270,0,2,19],[33,45865,100,3880,0,2,19],[33,45866,1000,3920,0,2,19],[33,45868,200,3870,0,2,19],[33,45915,1000,4130,0,2,19],[33,45966,100,3930,0,2,19],[33,45973,500,3900,0,2,19],[34,43755,100,160,0,0,19],[34,43755,1300,164,0,0,19],[34,43761,200,150,0,0,19],[34,43761,300,150,0,0,19],[34,43762,1300,158,1,0,29],[34,43762,200,158,1,0,29],[34,43766,1000,155,0,0,19],[34,43768,1000,150,0,0,19],[34,43774,1000,159,1,0,29],[34,43774,1000,159,1,0,29],[34,43777,1000,140,0,0,19],[34,43781,1000,147,1,0,29],[34,43797,3000,135,0,0,19],[34,43801,400,127,0,0,19],[34,43802,1400,132,0,0,19],[34,43808,500,128,0,0,19],[34,43808,500,130,0,0,19],[34,43819,3000,135,1,0,29],[34,43819,400,143,1,0,29],[34,43819,1400,142,1,0,29],[34,43819,500,135,1,0,29],[34,43819,500,137,1,0,29],[34,43822,2000,148,0,0,19],[34,43822,1000,148,0,0,19],[34,43850,2000,128,0,0,19],[34,43850,2000,128,0,0,19],[34,43881,1600,106,0,0,19],[34,43887,1600,109,1,0,29],[34,43889,600,101,0,0,19],[34,43899,500,85,0,0,19],[34,43902,500,67,1,0,29],[34,43936,600,96,1,0,29],[34,43944,2000,110,0,0,19],[34,43964,2000,96,0,0,19],[34,43978,2000,99,1,0,29],[34,44019,2000,99,0,0,19],[34,44035,2000,104,1,0,29],[34,44036,2000,132,1,0,29],[34,44036,2000,135,1,0,29],[34,44036,2000,120,1,0,29],[34,44039,100,162,1,0,29],[34,44039,300,162,1,0,29],[34,44039,1000,162,1,0,29],[34,44039,2000,162,1,0,29],[35,43479,100,80950,0,0,19],[35,43488,100,82850,0,0,19],[35,43494,100,83750,1,0,29],[35,43494,100,83750,1,0,29],[35,43502,400,82700,0,0,19],[35,43514,400,83000,1,0,29],[35,43549,100,87900,0,0,19],[35,43549,100,87900,0,0,19],[35,43551,100,82000,0,0,19],[35,43551,100,85500,0,0,19],[35,43556,100,82800,0,0,19],[35,43566,100,78850,0,0,19],[35,43578,100,80200,1,0,29],[35,43587,100,83500,1,0,29],[35,43588,100,85000,1,0,29],[35,43591,100,82000,0,0,19],[35,43592,100,82775,1,0,29],[35,43593,100,80200,0,0,19],[35,43594,100,82700,1,0,29],[35,43641,100,76500,0,0,19],[35,43658,100,76100,0,0,19],[35,43668,100,79700,1,0,29],[35,43707,100,69400,0,0,19],[35,43707,100,71500,0,0,19],[35,43770,100,54000,0,0,19],[35,43775,100,54850,1,0,29],[35,43776,100,52500,0,0,19],[35,43777,100,53200,1,0,29],[35,43980,100,47000,0,0,19],[35,43985,100,47750,1,0,29],[35,44629,100,25600,0,0,19],[35,45015,100,26900,1,0,29],[35,45407,100,19150,0,2,19],[35,45428,100,19250,1,2,29],[36,45154,5000,95,0,2,19],[36,45163,1000,84,0,2,19],[36,45169,1000,93,1,2,29],[36,45181,1000,88,0,2,19],[36,45211,1000,78,0,2,19],[36,45225,600,58,0,2,19],[36,45251,1600,89,1,2,29],[36,45261,6000,104,1,2,29],[36,45265,1500,99,0,2,19],[36,45266,500,95,0,2,19],[36,45268,2000,106,1,2,29],[36,45271,300,85,0,2,19],[36,45271,300,93,0,2,19],[36,45271,1500,99,0,2,19],[36,45273,500,89,0,2,19],[36,45274,800,92,1,2,29],[36,45278,300,85,0,2,19],[36,45278,500,91,0,2,19],[36,45308,1000,85,0,2,19],[36,45314,500,85,0,2,19],[36,45323,3600,91,1,2,29],[36,45350,2000,75,0,2,19],[36,45355,1000,67,0,2,19],[36,45357,1000,70,1,2,29],[36,45358,2000,68,0,2,19],[36,45366,2000,71,1,2,29],[36,45373,1000,66,0,2,19],[36,45399,2000,63,0,2,19],[36,45418,1000,68,1,2,29],[36,45427,2000,66,1,2,29],[36,45446,5000,64,0,2,19],[36,45447,2000,61,0,2,19],[36,45552,1000,65,0,2,19],[36,45560,1000,65,1,2,29],[36,45561,1000,70,1,2,29],[36,45561,3000,69,1,2,29],[36,45625,5500,71,1,2,29],[36,45804,30000,67,0,2,19],[36,45805,10000,63,0,2,19],[36,45827,5000,61,0,2,19],[36,45834,20000,58,0,2,19],[36,45868,20000,60,1,2,29],[36,45868,5000,64,1,2,29],[36,45945,40000,54,1,2,29],[37,45926,10000,148,0,2,18],[37,45926,2000,147,0,2,18],[37,45929,10000,155,0,2,18],[37,45930,5000,153,0,2,18],[37,45933,5000,159,0,2,18],[37,45939,5000,170,0,2,18],[37,45939,1000,167,0,2,18],[37,45939,5000,165,0,2,18],[37,45940,10000,166,0,2,18],[37,45940,2000,165,0,2,18],[37,45943,600,169,0,2,18],[37,45943,600,166,0,2,18],[37,45944,56200,160,1,2,28],[38,43413,1000,3830,0,0,19],[38,43432,1000,3580,1,0,29],[38,46044,5000,805,0,0,18],[38,46048,5000,810,1,0,28],[39,45849,10000,62,0,2,19],[39,45849,5000,62,0,2,19],[39,45849,2000,59,0,2,19],[39,45852,10000,57,0,2,19],[39,45853,100,57,0,2,19],[39,45859,20000,61,0,2,19],[39,45860,47100,61,1,2,29],[40,43959,300,9625,0,0,19],[40,43962,300,9800,1,0,29],[40,43984,300,8500,0,0,19],[40,43985,300,8600,0,0,19],[40,43987,300,8625,1,0,29],[40,43987,300,8625,1,0,29],[41,44414,2000,95,0,0,19],[41,44414,2000,96,0,0,19],[41,44424,2000,109,1,0,29],[41,44424,2000,109,1,0,29],[42,46030,300,3830,0,2,18],[42,46031,300,3670,1,2,28],[43,43816,1000,430,0,0,18],[43,43816,1000,430,0,0,18],[43,43817,500,478,0,0,18],[43,43817,300,484,0,0,18],[43,43817,1000,490,0,0,18],[43,43817,1000,530,1,0,28],[43,43818,1000,494,1,0,28],[43,43819,500,670,0,0,18],[43,43819,1000,655,1,0,28],[43,43819,500,680,1,0,28],[43,43819,300,680,1,0,28],[43,43822,500,790,1,0,28],[44,44004,200,6625,0,0,18],[44,44011,200,6750,1,0,28],[44,44028,100,6650,0,0,18],[44,44028,400,6650,0,0,18],[44,44041,300,6375,0,0,18],[44,44047,100,6550,1,0,28],[44,44047,400,6650,1,0,28],[44,44047,300,6650,1,0,28],[44,44181,400,6900,0,1,18],[44,44183,1000,6850,0,1,18],[44,44216,100,6775,0,1,18],[44,44218,100,6750,0,1,18],[44,44236,100,6175,0,1,18],[44,44286,100,6675,1,1,28],[44,44292,1600,6750,1,1,28],[44,45044,400,6425,0,0,18],[44,45048,200,6475,0,0,18],[44,45050,400,6650,1,0,28],[44,45050,200,6650,1,0,28],[45,43467,200,11850,0,0,18],[45,43479,200,12250,1,0,28],[46,44375,1000,158,0,0,19],[46,44375,1000,158,0,0,19],[46,44376,1000,148,0,0,19],[46,44378,2000,144,0,0,19],[46,44383,1000,147,0,0,19],[46,44386,2000,153,1,0,29],[46,44386,1000,153,1,0,29],[46,44389,1000,165,1,0,29],[46,44390,1000,180,1,0,29],[46,44390,1000,182,1,0,29],[47,43837,2000,199,0,0,19],[47,43838,1000,185,0,0,19],[47,43844,2000,189,0,0,19],[47,43845,500,180,0,0,19],[47,43847,2000,183,0,0,19],[47,43852,1000,185,0,0,19],[47,43853,2000,191,1,0,29],[47,43853,1000,191,1,0,29],[47,43853,2000,191,1,0,29],[47,43853,500,191,1,0,29],[47,43853,2000,191,1,0,29],[47,43853,1000,191,1,0,29],[48,43530,300,21875,0,0,19],[48,43536,300,22450,1,0,29],[49,43556,600,1745,0,0,19],[49,43556,1000,1800,0,0,19],[49,43560,500,1700,0,0,19],[49,43570,1000,1775,1,0,29],[49,43570,500,1770,1,0,29],[49,43573,600,1800,1,0,29],[49,44032,700,1120,0,1,19],[49,44035,700,1140,1,1,29],[49,45929,2000,1980,0,2,18],[49,45929,500,1965,0,2,18],[49,45931,2500,2050,1,2,28],[50,43817,300,1290,0,0,18],[50,43817,300,1300,0,0,18],[50,43817,200,1370,0,0,18],[50,43817,300,1380,0,0,18],[50,43818,300,1450,0,0,18],[50,43818,300,1335,1,0,28],[50,43818,300,1535,1,0,28],[50,43819,300,1325,0,0,18],[50,43822,200,1270,0,0,18],[50,43822,200,1320,0,0,18],[50,43833,1000,1220,0,0,18],[50,43840,100,1130,0,0,18],[50,43844,200,1080,0,0,18],[50,43845,100,1020,0,0,18],[50,43846,200,1180,1,0,28],[50,43846,300,1180,1,0,28],[50,43846,300,1180,1,0,28],[50,43846,300,1180,1,0,28],[50,43846,200,1180,1,0,28],[50,43846,200,1180,1,0,28],[50,43846,100,1180,1,0,28],[50,43846,200,1180,1,0,28],[50,43846,100,1180,1,0,28],[50,43847,400,1110,0,0,18],[50,43847,100,1140,0,0,18],[50,43847,300,1160,0,0,18],[50,43847,300,1185,0,0,18],[50,43847,400,1210,0,0,18],[50,43850,200,1110,0,0,18],[50,43852,500,1050,0,0,18],[50,43853,500,1100,1,0,28],[50,43854,300,1070,0,0,18],[50,43899,100,780,0,0,18],[50,43899,300,805,0,0,18],[50,43900,400,880,1,0,28],[50,43901,100,765,0,0,18],[50,43902,100,720,0,0,18],[50,43903,400,690,1,0,28],[50,43903,100,685,1,0,28],[50,43906,200,720,0,0,18],[50,43907,100,630,0,0,18],[50,43908,100,640,1,0,28],[50,43913,200,820,1,0,28],[50,43913,100,825,1,0,28],[50,43916,1000,1500,1,0,28],[50,43916,300,1230,1,0,28],[50,43916,300,1230,1,0,28],[50,43916,100,1300,1,0,28],[50,43922,500,1400,0,0,18],[50,43944,300,1315,0,0,18],[50,43964,300,1240,0,0,18],[50,43991,300,1270,1,0,28],[50,44033,200,650,1,0,28],[50,44033,300,1550,1,0,28],[50,44033,300,1550,1,0,28],[50,44033,100,1550,1,0,28],[50,44033,500,1550,1,0,28],[50,44033,300,1550,1,0,28],[51,45877,2000,790,0,2,18],[51,45883,2000,795,1,2,28],[52,44372,300,850,0,0,19],[52,44379,200,800,0,0,19],[52,44384,500,860,1,0,29],[53,44208,2000,598,0,0,19],[53,44209,2000,675,1,0,29],[54,44736,100,1185,0,2,19],[54,44763,100,1235,1,2,29],[54,45798,1500,1225,0,2,19],[54,45804,500,1215,0,2,19],[54,45810,1500,1240,1,2,29],[55,43628,1000,1135,0,0,19],[55,43633,1000,1040,0,0,19],[55,43641,1000,1110,1,0,29],[55,43641,1000,1110,1,0,29],[56,45896,10000,434,0,2,18],[56,45897,2000,428,0,2,18],[56,45897,1000,414,0,2,18],[56,45902,2000,426,0,2,18],[56,45903,15000,440,1,2,28],[56,45915,5000,488,0,2,18],[56,45918,2000,470,0,2,18],[56,45922,1000,494,0,2,18],[56,45924,2000,488,0,2,18],[56,45925,2000,470,0,2,18],[56,45926,12000,492,1,2,28],[56,46027,10000,625,0,2,18],[56,46027,5000,620,0,2,18],[56,46028,15000,660,1,2,28],[56,46029,10000,690,0,2,18],[56,46030,1000,645,0,2,18],[56,46030,5000,635,0,2,18],[56,46035,16000,695,1,2,28],[56,46036,5200,795,0,2,18],[56,46037,5200,810,1,2,28],[56,46037,2000,815,0,2,18],[56,46037,1500,815,0,2,18],[56,46037,2000,805,0,2,18],[56,46044,3000,810,0,2,18],[56,46049,1000,775,0,2,18],[56,46050,500,760,0,2,18],[56,46050,1000,730,0,2,18],[56,46052,500,720,0,2,18],[56,46065,500,740,0,2,18],[56,46072,12000,885,1,2,28],[56,46073,500,905,0,2,18],[56,46073,500,865,0,2,18],[56,46073,300,860,0,2,18],[56,46076,2000,880,0,2,18],[56,46077,1000,875,0,2,18],[56,46078,4300,900,1,2,28],[56,46078,5000,855,0,2,18],[56,46090,500,660,0,2,18],[56,46121,1500,760,0,2,18],[56,46125,500,735,0,2,18],[56,46128,1000,730,0,2,18],[56,46134,200,725,0,2,18],[56,46177,1000,430,0,2,18],[57,44145,500,1860,0,2,19],[57,44152,500,1900,1,2,29],[58,43838,400,920,0,0,18],[58,43839,100,880,0,0,18],[58,43843,500,870,0,0,18],[58,43850,300,835,0,0,18],[58,43852,200,770,0,0,18],[58,43852,100,770,0,0,18],[58,43854,400,740,0,0,18],[58,43857,500,680,0,0,18],[58,43858,400,685,1,0,28],[58,43858,100,685,1,0,28],[58,43901,500,535,0,0,18],[58,43971,500,470,0,0,18],[58,43985,500,484,1,0,28],[58,44070,300,580,1,0,28],[58,44070,200,580,1,0,28],[58,44203,100,735,1,0,28],[58,44203,400,735,1,0,28],[58,44203,500,730,1,0,28],[58,44203,500,730,1,0,28],[58,44203,500,730,1,0,28],[58,45580,1000,1285,0,1,18],[58,45586,1000,1320,1,1,28],[59,45482,1000,3000,0,2,19],[59,45483,300,2960,0,2,19],[59,45488,500,2950,0,2,19],[59,45492,500,2960,0,2,19],[59,45495,1000,2900,0,2,19],[59,45498,3300,3010,1,2,29],[59,45537,300,2950,0,2,19],[59,45541,200,2960,0,2,19],[59,45544,500,3010,1,2,29],[59,45593,500,2790,0,2,19],[59,45595,500,2830,1,2,29],[60,43641,1000,885,0,0,18],[60,43641,500,900,0,0,18],[60,43661,600,800,0,0,18],[60,43661,400,800,0,0,18],[60,43704,500,675,0,0,18],[60,43714,600,705,0,0,18],[60,43714,300,705,0,0,18],[60,43714,300,705,0,0,18],[60,43714,1000,740,1,0,28],[60,43714,500,740,1,0,28],[60,43740,200,670,0,0,18],[60,43755,300,705,1,0,28],[60,43840,100,690,0,0,18],[60,43895,300,625,0,0,18],[60,43900,100,600,0,0,18],[60,43980,300,635,1,0,28],[60,44001,500,492,0,0,18],[60,44082,800,462,0,0,18],[60,44139,500,372,0,0,18],[60,44139,4000,390,0,0,18],[60,44180,1000,462,0,0,18],[60,44180,1000,462,0,0,18],[60,44186,400,570,1,0,28],[60,44186,600,570,1,0,28],[60,44186,4000,570,1,0,28],[60,44187,500,555,1,0,28],[60,44187,1000,555,1,0,28],[60,44188,600,570,1,0,28],[60,44188,500,570,1,0,28],[60,44188,100,570,1,0,28],[60,44188,100,570,1,0,28],[60,44188,500,570,1,0,28],[60,44200,1000,494,0,0,18],[60,44200,300,520,1,0,28],[60,44200,200,520,1,0,28],[60,44200,800,520,1,0,28],[60,44200,1000,520,1,0,28],[60,44201,1000,520,1,0,28],[61,45547,500,620,0,2,19],[61,45560,500,640,1,2,29],[62,45365,1000,625,0,2,19],[62,45366,1000,615,0,2,19],[62,45372,2000,615,0,2,19],[62,45398,1000,600,0,2,19],[62,45411,1000,575,0,2,19],[62,45415,1000,560,0,2,19],[62,45418,1000,575,1,2,29],[62,45432,500,605,1,2,29],[62,45432,1000,610,1,2,29],[62,45433,1000,590,0,2,19],[62,45439,500,590,0,2,19],[62,45447,2000,620,1,2,29],[62,45454,1500,620,0,2,19],[62,45462,500,595,0,2,19],[62,45468,1000,650,1,2,29],[62,45469,1000,650,0,2,19],[62,45469,200,650,0,2,19],[62,45470,1000,650,1,2,29],[62,45471,2500,630,0,2,19],[62,45475,2000,635,1,2,29],[62,45477,1000,675,1,2,29],[62,45482,1000,675,0,2,19],[62,45484,1500,680,1,2,29],[62,45485,1000,675,1,2,29],[62,45489,1000,680,1,2,29],[62,45490,700,685,1,2,29],[62,45492,500,675,1,2,29],[62,45499,1000,665,0,2,19],[62,45505,1000,670,0,2,19],[62,45520,500,665,0,2,19],[62,45523,500,660,0,2,19],[62,45524,500,655,0,2,19],[62,45539,500,650,0,2,19],[62,45562,1000,645,0,2,19],[62,45569,1000,595,0,2,19],[62,45572,1000,615,1,2,29],[62,45573,1500,600,0,2,19],[62,45579,2000,625,0,2,19],[62,45581,1500,650,1,2,29],[62,45583,2000,640,0,2,19],[62,45601,1000,600,0,2,19],[62,45635,1000,670,1,2,29],[62,45635,1500,670,1,2,29],[62,45635,5000,665,1,2,29],[62,45671,3500,680,1,2,29],[62,45799,7500,660,0,2,19],[62,45805,2000,645,0,2,19],[62,45838,12500,550,0,2,19],[62,45859,22000,620,1,2,29],[63,43990,500,2290,0,0,19],[63,43991,500,2320,1,0,29],[64,46028,5000,1285,0,2,18],[64,46029,5000,1430,1,2,28],[64,46037,2000,1475,0,2,18],[64,46037,500,1460,0,2,18],[64,46043,500,1430,0,2,18],[64,46048,3000,1540,1,2,28],[64,46049,5200,1510,0,2,18],[64,46049,500,1450,0,2,18],[64,46050,500,1360,0,2,18],[64,46051,300,1300,0,2,18],[64,46052,200,1350,0,2,18],[64,46064,500,1395,0,2,18],[64,46073,200,1470,0,2,18],[64,46076,7400,1545,1,2,28],[64,46077,1000,1570,0,2,18],[64,46077,2000,1530,0,2,18],[64,46078,3000,1570,1,2,28],[64,46083,1500,1510,0,2,18],[64,46085,1500,1300,1,2,28],[65,45834,1000,830,0,2,19],[65,45839,1000,855,1,2,29],[66,43451,500,2170,0,0,19],[66,43455,700,2100,0,0,19],[66,43461,500,2130,1,0,29],[66,43461,700,2130,1,0,29],[66,43469,500,2210,0,0,19],[66,43469,200,2210,0,0,19],[66,43469,100,2210,0,0,19],[66,43469,200,2210,0,0,19],[66,43474,500,2260,1,0,29],[66,43479,200,2280,1,0,29],[66,43479,100,2290,1,0,29],[66,43479,200,2300,1,0,29],[66,43916,200,650,0,0,19],[66,43917,200,795,1,0,29],[66,44378,500,1015,0,1,19],[66,44379,500,1036,1,1,29],[66,44629,200,1545,0,0,19],[66,44630,200,1460,0,0,19],[66,44637,200,1385,0,0,19],[66,44692,200,1525,1,0,29],[66,44692,200,1525,1,0,29],[66,44692,200,1525,1,0,29],[66,45043,300,1430,0,0,19],[66,45063,500,1360,0,0,19],[66,45072,500,1335,0,0,19],[66,45076,500,1415,1,0,29],[66,45076,500,1420,1,0,29],[66,45089,200,1315,0,1,19],[66,45093,500,1320,0,0,19],[66,45098,500,1305,0,1,19],[66,45111,700,1340,1,1,29],[66,45131,500,1400,1,0,29],[66,45131,300,1400,1,0,29],[66,45152,500,1385,0,1,19],[66,45153,500,1465,1,1,29],[66,45167,1000,1455,0,0,19],[66,45222,200,1345,0,0,19],[66,45313,100,1135,0,0,19],[66,45313,200,1135,0,0,19],[66,45338,200,1180,1,0,29],[66,45365,100,1175,1,0,29],[66,45377,200,1340,0,0,19],[66,45383,200,1355,0,0,19],[66,45414,400,1450,0,0,19],[66,45415,400,1500,1,0,29],[66,45415,200,1500,1,0,29],[66,45415,200,1500,1,0,29],[66,45415,200,1500,1,0,29],[66,45426,500,1455,0,0,19],[66,45434,1000,1590,1,0,29],[66,45434,500,1590,1,0,29],[66,45443,500,1595,0,0,19],[66,45453,500,1435,0,0,19],[66,45453,500,1435,0,0,19],[66,45468,500,1550,1,0,29],[66,45468,500,1550,1,0,29],[66,45477,500,1610,1,0,29],[66,45482,2000,1535,0,0,19],[66,45482,2000,1540,0,0,19],[66,45484,500,1555,1,0,29],[66,45484,500,1555,1,0,29],[66,45489,2500,1620,1,0,29],[66,45490,500,1625,1,0,29],[66,45491,1000,1610,0,0,19],[66,45492,1000,1585,0,0,19],[66,45492,500,1590,0,0,19],[66,45492,300,1600,1,0,29],[66,45504,1000,1590,0,0,19],[66,45505,1500,1590,0,0,19],[66,45530,1000,1670,0,0,19],[66,45531,1000,1575,0,0,19],[66,45531,500,1580,0,0,19],[66,45558,500,1485,0,0,19],[66,45582,1000,1540,0,0,19],[66,45582,1000,1540,0,0,19],[66,45635,5000,1665,1,0,29],[66,45663,4700,1670,1,0,29],[66,45674,500,1620,0,0,19],[66,45679,1000,1580,0,0,19],[66,45680,1500,1630,1,0,29],[66,45692,1000,1590,0,0,19],[66,45693,1000,1625,1,0,29],[66,45859,2000,1630,0,0,19],[66,45867,2000,1615,1,0,29],[67,45156,500,970,0,2,18],[67,45167,500,1240,1,2,28],[67,45246,200,1255,0,2,18],[67,45252,300,1150,0,2,18],[67,45252,500,1150,0,2,18],[67,45252,500,1155,0,2,18],[67,45253,200,1105,0,2,18],[67,45254,200,1040,0,2,18],[67,45257,100,1030,0,2,18],[67,45264,100,990,0,2,18],[67,45264,100,1020,0,2,18],[67,45265,100,1020,1,2,28],[67,45265,100,1010,0,2,18],[67,45273,200,1200,1,2,28],[67,45273,1000,1190,1,2,28],[67,45274,200,1250,1,2,28],[67,45274,300,1250,1,2,28],[67,45274,200,1230,1,2,28],[67,45275,300,1270,1,2,28],[67,45288,300,1190,0,2,18],[67,45289,100,1175,0,2,18],[67,45293,200,1235,1,2,28],[67,45294,200,1290,0,2,18],[67,45296,300,1290,0,2,18],[67,45299,200,1220,1,2,28],[67,45300,200,1190,0,2,18],[67,45307,100,1225,0,2,18],[67,45308,200,1240,0,2,18],[67,45316,200,1265,1,2,28],[67,45324,200,1290,0,2,18],[67,45324,300,1300,0,2,18],[67,45324,200,1305,0,2,18],[67,45327,200,1220,0,2,18],[67,45327,300,1240,0,2,18],[67,45327,300,1250,0,2,18],[67,45328,300,1225,0,2,18],[67,45329,300,1200,0,2,18],[67,45334,300,1230,1,2,28],[67,45335,500,1200,0,2,18],[67,45338,1000,1205,0,2,18],[67,45342,300,1195,0,2,18],[67,45343,300,1180,0,2,18],[67,45345,600,1215,1,2,28],[67,45350,200,1220,0,2,18],[67,45358,500,1195,0,2,18],[67,45358,100,1190,0,2,18],[67,45369,200,1180,0,2,18],[67,45386,100,1150,0,2,18],[67,45400,1000,1235,1,2,28],[67,45418,500,1325,1,2,28],[67,45418,1000,1305,1,2,28],[67,45419,1000,1335,1,2,28],[67,45425,300,1275,0,2,18],[67,45425,200,1290,0,2,18],[67,45426,200,1250,0,2,18],[67,45427,1000,1250,0,2,18],[67,45429,1000,1290,0,2,18],[67,45429,500,1300,0,2,18],[67,45429,1000,1305,0,2,18],[67,45434,1000,1275,0,2,18],[67,45439,500,1250,0,2,18],[67,45442,1000,1240,0,2,18],[67,45443,1000,1200,0,2,18],[67,45443,500,1210,0,2,18],[67,45443,300,1210,0,2,18],[67,45447,1000,1200,0,2,18],[67,45448,500,1190,0,2,18],[67,45455,500,1130,0,2,18],[67,45462,500,1015,0,2,18],[67,45467,1000,1150,0,2,18],[67,45471,1000,1190,0,2,18],[67,45471,500,1195,0,2,18],[67,45475,500,1210,0,2,18],[67,45476,5000,1190,0,2,18],[67,45476,500,1190,0,2,18],[67,45477,500,1200,0,2,18],[67,45478,1000,1230,1,2,28],[67,45482,1000,1220,1,2,28],[67,45488,300,1275,0,2,18],[67,45490,500,1260,0,2,18],[67,45492,1000,1270,0,2,18],[67,45492,300,1280,0,2,18],[67,45496,500,1280,0,2,18],[67,45498,500,1270,0,2,18],[67,45499,300,1265,0,2,18],[67,45502,1000,1275,1,2,28],[67,45503,500,1270,0,2,18],[67,45504,500,1320,1,2,28],[67,45504,1500,1310,1,2,28],[67,45505,1000,1290,0,2,18],[67,45509,500,1195,0,2,18],[67,45523,500,1210,0,2,18],[67,45524,500,1200,0,2,18],[67,45524,1000,1210,0,2,18],[67,45532,500,1160,0,2,18],[67,45555,1000,1120,0,2,18],[67,45558,1000,1140,0,2,18],[67,45560,500,1160,0,2,18],[67,45562,2000,1150,0,2,18],[67,45565,1000,1135,1,2,28],[67,45569,500,1150,1,2,28],[67,45579,1000,1185,0,2,18],[67,45582,2000,1175,0,2,18],[67,45582,1000,1180,0,2,18],[67,45588,1000,1135,0,2,18],[67,45793,9000,1280,1,2,28],[67,45796,11100,1250,1,2,28],[67,45796,2000,1270,1,2,28],[67,45797,1000,1300,1,2,28],[67,45798,1000,1405,1,2,28],[67,45799,2000,1390,0,2,18],[67,45803,5000,1285,1,2,28],[67,45803,3500,1300,1,2,28],[67,45803,2000,1305,1,2,28],[67,45804,7500,1350,0,2,18],[67,45805,1500,1320,0,2,18],[67,45812,1500,1305,0,2,18],[67,45814,500,1300,0,2,18],[67,45818,800,1400,0,2,18],[67,45822,400,1450,0,2,18],[67,45824,1000,1420,0,2,18],[67,45825,13200,1550,1,2,28],[67,45825,2500,1600,0,2,18],[67,45826,2000,1520,0,2,18],[67,45831,1000,1320,0,2,18],[67,45833,1000,1325,0,2,18],[67,45839,3800,1400,0,2,18],[67,45840,800,1370,0,2,18],[67,45841,6600,1420,1,2,28],[67,45842,2000,1450,0,2,18],[67,45842,2000,1450,0,2,18],[67,45842,2600,1405,0,2,18],[67,45847,1500,1450,0,2,18],[67,45848,2000,1505,1,2,28],[67,45848,4100,1480,1,2,28],[67,45849,1000,1510,1,2,28],[67,45849,1000,1500,1,2,28],[67,45852,1000,1490,0,2,18],[67,45852,1000,1475,0,2,18],[67,45852,2500,1485,0,2,18],[67,45854,2500,1605,1,2,28],[67,45854,1500,1570,0,2,18],[67,45854,2000,1550,0,2,18],[67,45854,2000,1575,1,2,28],[67,45854,2500,1565,0,2,18],[67,45854,1000,1580,0,2,18],[67,45855,2500,1595,1,2,28],[67,45855,2500,1610,0,2,18],[67,45856,2500,1655,1,2,28],[67,45856,9000,1680,1,2,28],[67,45856,11400,1670,0,2,18],[67,45859,11400,1690,1,2,28],[67,45869,2000,1650,0,2,18],[67,45869,2000,1640,0,2,18],[67,45870,1000,1630,0,2,18],[67,45870,2000,1610,0,2,18],[67,45870,2000,1680,0,2,18],[67,45870,2000,1630,0,2,18],[67,45873,2000,1660,0,2,18],[67,45873,2000,1650,0,2,18],[67,45874,1000,1600,0,2,18],[67,45875,2000,1620,0,2,18],[67,45876,2000,1590,0,2,18],[67,45880,5000,1630,0,2,18],[67,45880,2000,1590,0,2,18],[67,45881,15000,1590,0,2,18],[67,45882,300,1560,0,2,18],[67,45882,400,1525,0,2,18],[67,45888,300,1500,0,2,18],[67,45888,300,1485,0,2,18],[67,45888,5000,1470,0,2,18],[67,45889,1000,1445,0,2,18],[67,45891,2000,1425,0,2,18],[67,45896,3000,1555,1,2,28],[67,45896,6000,1560,0,2,18],[67,45897,1400,1530,0,2,18],[67,45898,1000,1480,0,2,18],[67,45898,1000,1420,0,2,18],[67,45901,1000,1390,0,2,18],[67,45901,2000,1410,0,2,18],[67,45902,1000,1470,0,2,18],[67,45904,2000,1430,0,2,18],[67,45909,1000,1400,0,2,18],[67,45911,2500,1400,0,2,18],[67,45912,2000,1390,0,2,18],[67,45915,3000,1390,0,2,18],[67,45916,1000,1350,0,2,18],[67,45918,1000,1330,0,2,18],[67,45931,500,1380,0,2,18],[67,45936,2000,1510,0,2,18],[67,45936,1000,1495,0,2,18],[67,45965,1000,1290,0,2,18],[67,45965,500,1255,0,2,18],[67,45975,500,1180,0,2,18],[67,46051,300,1050,0,2,18],[67,46052,500,1090,0,2,18],[67,46066,300,1190,0,2,18],[67,46161,500,980,0,2,18],[68,45370,1000,348,0,2,19],[68,45372,500,324,0,2,19],[68,45407,300,260,0,2,19],[68,45418,1000,222,0,2,19],[68,45427,1000,202,0,2,19],[68,45428,1000,212,1,2,29],[68,45537,1000,195,0,2,19],[68,45579,1000,151,0,2,19],[68,45580,1000,160,1,2,29],[69,43595,200,3190,0,0,18],[69,43598,200,3190,0,0,18],[69,43598,100,3050,0,0,18],[69,43599,100,2900,0,0,18],[69,43600,100,2900,0,0,18],[69,43602,100,2770,0,0,18],[69,43628,200,2890,0,0,18],[69,43641,200,3060,1,0,28],[69,43641,200,3060,1,0,28],[69,43641,100,3060,1,0,28],[69,43641,100,3060,1,0,28],[69,43651,100,3060,1,0,28],[69,43651,100,3060,1,0,28],[69,43651,200,3060,1,0,28],[69,43971,500,1915,0,0,18],[69,43977,500,2020,1,0,28],[69,43978,1000,2080,0,0,18],[69,43979,1000,2120,1,0,28],[69,44207,500,2900,0,1,18],[69,44209,500,3050,1,1,28],[69,44210,500,3040,0,0,18],[69,44210,300,3040,0,0,18],[69,44210,200,3040,0,0,18],[69,44211,500,2960,0,0,18],[69,44211,500,3020,0,0,18],[69,44215,200,2950,0,0,18],[69,44217,500,2860,1,0,28],[69,44218,1000,2850,0,0,18],[69,44218,300,2820,0,0,18],[69,44222,200,2970,0,0,18],[69,44230,300,2420,0,0,18],[69,44262,500,3600,1,0,28],[69,44263,200,2680,0,0,18],[69,44274,300,2760,1,0,28],[69,44274,200,2750,1,0,28],[69,44278,100,2800,0,0,18],[69,44295,100,2550,0,0,18],[69,44350,100,2330,0,0,18],[69,44357,300,2220,0,0,18],[69,44358,500,2310,0,0,18],[69,44361,300,2290,1,0,28],[69,44365,200,2140,0,0,18],[69,44371,100,2030,0,0,18],[69,44383,200,2180,1,0,28],[69,44383,100,2180,1,0,28],[69,44420,500,2360,1,0,28],[69,44466,100,2450,1,0,28],[69,44467,100,2620,1,0,28],[69,44476,100,2690,0,0,18],[69,44476,100,2690,0,0,18],[69,44480,100,2810,1,0,28],[69,44480,100,2810,1,0,28],[69,44487,1000,2880,1,0,28],[69,44497,300,2630,0,0,18],[69,44525,300,2680,1,0,28],[69,44582,100,2830,1,0,28],[69,44617,300,3250,1,0,28],[69,44617,200,3250,1,0,28],[69,44627,300,3590,1,0,28],[69,44627,200,3600,1,0,28],[69,44627,500,3190,1,0,28],[69,44627,200,3600,1,0,28],[69,45090,1000,3480,0,1,18],[69,45091,300,3460,0,1,18],[69,45093,200,3930,1,1,28],[69,45099,500,3792,0,1,18],[69,45149,100,2770,0,1,18],[69,45348,200,2580,0,1,18],[69,45351,100,2580,0,1,18],[69,45357,300,2773,1,1,28],[69,45364,200,2800,0,1,18],[69,45379,200,2950,0,1,18],[69,45407,100,2920,0,1,18],[69,45408,1000,2895,0,1,18],[69,45411,1600,2990,1,1,28],[69,45415,500,2890,0,1,18],[69,45419,500,2900,0,1,18],[69,45427,300,2920,0,1,18],[69,45428,100,2910,0,1,18],[69,45433,300,2590,0,1,18],[69,45439,300,2600,0,1,18],[69,45441,200,2500,0,1,18],[69,45443,300,2490,0,1,18],[69,45453,1000,2495,0,1,18],[69,45454,300,2450,0,1,18],[69,45462,200,2430,0,1,18],[69,45476,500,2520,1,1,28],[69,45482,1000,2550,0,1,18],[69,45485,200,2540,0,1,18],[69,45502,500,2680,1,1,28],[69,45504,500,2680,1,1,28],[69,45509,500,2550,0,1,18],[69,45510,500,2600,1,1,28],[69,45511,300,2610,1,1,28],[69,45512,1000,2580,0,1,18],[69,45517,500,2650,0,1,18],[69,45555,1000,2850,1,1,28],[69,45558,1000,2940,0,1,18],[69,45558,1000,3120,1,1,28],[69,45559,1000,3090,0,1,18],[69,45560,2000,3090,1,1,28],[69,45561,500,3070,0,1,18],[69,45561,1000,3110,1,1,28],[69,45562,1000,3050,0,1,18],[69,45565,2500,3090,1,1,28],[69,45566,3000,3047,0,1,18],[69,45567,800,3038,0,1,18],[69,45568,500,3050,0,1,18],[69,45569,300,3020,0,1,18],[69,45572,800,3096,1,1,28],[69,45574,1000,3050,0,1,18],[69,45579,3000,3100,1,1,28],[69,45580,1000,3080,0,1,18],[69,45580,1000,3120,1,1,28],[69,45586,1000,3030,0,1,18],[69,45588,1000,2990,0,1,18],[69,45590,500,2900,0,1,18],[69,45601,1000,2870,0,1,18],[69,45609,200,2850,0,1,18],[69,45636,400,2760,1,1,28],[69,46093,4000,2920,1,2,28],[69,46093,3600,2910,1,2,28],[70,45896,1000,4030,0,2,18],[70,45896,500,3960,0,2,18],[70,45897,1000,3920,0,2,18],[70,45898,500,3800,0,2,18],[70,45904,1000,3700,0,2,18],[70,45915,4000,3970,1,2,28],[70,45983,1000,8850,0,2,18],[70,45985,1000,9450,1,2,28],[70,46126,300,6600,0,2,18],[70,46168,200,4000,0,2,18],[70,46176,200,4160,1,2,28],[71,43591,300,700,0,0,18],[71,43598,200,660,0,0,18],[71,43627,300,745,1,0,28],[71,43627,200,745,1,0,28],[71,43812,500,565,0,0,18],[71,43817,500,570,1,0,28],[71,43914,200,274,0,0,18],[71,43916,200,302,1,0,28],[71,43923,1000,318,0,0,18],[71,43924,1000,340,1,0,28],[71,43991,1000,466,0,0,18],[71,43997,200,456,0,0,18],[71,43999,1000,466,1,0,28],[71,43999,200,466,1,0,28],[71,44186,3000,575,0,0,18],[71,44194,1000,535,0,0,18],[71,44202,1000,515,0,0,18],[71,44209,3000,580,1,0,28],[71,44209,1000,580,1,0,28],[71,44209,1000,580,1,0,28],[71,45043,500,476,0,0,18],[71,45043,500,476,0,0,18],[71,45054,500,486,1,0,28],[71,45056,500,484,0,0,18],[71,45056,500,484,0,0,18],[71,45057,500,496,1,0,28],[71,45075,500,476,1,0,28],[71,45077,1000,468,0,0,18],[71,45082,200,466,0,0,18],[71,45084,1000,496,1,0,28],[71,45084,500,496,1,0,28],[71,45084,200,496,1,0,28],[71,45091,1000,486,0,0,18],[71,45091,1000,490,0,0,18],[71,45097,1000,482,0,0,18],[71,45121,1000,500,1,0,28],[71,45121,1000,500,1,0,28],[71,45121,1000,500,1,0,28],[71,45138,1500,476,0,0,18],[71,45142,1000,482,0,1,18],[71,45148,1500,474,0,1,18],[71,45156,500,470,0,1,18],[71,45163,1000,458,0,1,18],[71,45204,300,422,0,1,18],[71,45215,100,422,0,1,18],[71,45278,300,430,1,1,28],[71,45294,100,440,0,1,18],[71,45307,200,452,1,1,28],[71,45309,600,430,0,1,18],[71,45335,300,412,0,1,18],[71,45337,300,424,1,1,28],[71,45343,500,420,0,1,18],[71,45351,500,408,0,1,18],[71,45352,300,406,0,1,18],[71,45358,1000,406,0,1,18],[71,45370,500,408,0,1,18],[71,45400,500,400,0,1,18],[71,45411,300,392,0,1,18],[71,45414,1000,390,0,1,18],[71,45425,1000,380,0,1,18],[71,45455,1000,396,0,1,18],[71,45468,2000,376,0,1,18],[71,45482,2000,390,0,1,18],[71,45485,1000,428,1,1,28],[71,45491,1500,422,1,1,28],[71,45497,2000,426,1,1,28],[71,45502,2000,426,1,1,28],[71,45509,2500,421,0,1,18],[71,45510,3600,434,1,1,28],[71,45519,2000,454,0,1,18],[71,45523,500,452,0,1,18],[71,45531,3000,492,1,1,28],[71,45533,3000,486,0,1,18],[71,45537,1000,480,0,1,18],[71,45538,500,474,0,1,18],[71,45539,3000,492,1,1,28],[71,45540,2000,500,1,1,28],[71,45553,1000,500,0,1,18],[71,45553,1500,505,1,1,28],[71,45555,3600,515,1,1,28],[71,45560,2000,505,0,1,18],[71,45565,2000,505,0,1,18],[71,45566,8000,519,1,1,28],[71,45587,5000,498,0,1,18],[71,45588,2000,486,0,1,18],[71,45589,500,480,0,1,18],[71,45594,5000,476,0,1,18],[71,45595,2000,476,0,1,18],[71,45602,3000,437,0,1,18],[71,45665,2000,382,0,1,18],[71,45691,2000,378,0,1,18],[71,45859,2000,358,0,1,18],[71,45860,1000,356,0,1,18],[71,45868,10000,366,0,1,18],[71,45869,2000,358,0,1,18],[71,45874,4000,366,1,2,28],[71,45896,5000,378,0,2,18],[71,45933,2000,368,0,2,18],[71,46034,39500,414,1,2,28],[72,45849,1000,2600,0,2,18],[72,45852,1300,2680,0,2,18],[72,45853,2300,2700,1,2,28],[72,45874,1000,2700,0,2,18],[72,45874,500,2680,0,2,18],[72,45875,1000,2660,0,2,18],[72,45876,2000,2630,0,2,18],[72,45876,1000,2600,0,2,18],[72,45880,1000,2630,0,2,18],[72,45880,1000,2590,0,2,18],[72,45881,7500,2800,1,2,28],[72,45896,2000,2800,0,2,18],[72,45896,1000,2750,0,2,18],[72,45897,500,2730,0,2,18],[72,45898,1000,2630,0,2,18],[72,45901,1000,2630,0,2,18],[72,45901,500,2580,0,2,18],[72,45903,1000,2670,0,2,18],[72,45904,7000,2770,1,2,28],[72,45908,2000,2800,0,2,18],[72,45909,1000,2690,0,2,18],[72,45910,3000,2810,0,2,18],[72,45911,6000,2810,1,2,28],[72,45946,1000,5225,0,2,18],[72,45946,500,5200,0,2,18],[72,45946,1000,5050,0,2,18],[72,45946,500,5000,0,2,18],[72,45947,900,4600,0,2,18],[72,45947,200,4740,0,2,18],[72,45947,200,4760,0,2,18],[72,45953,200,4420,0,2,18],[72,45953,100,4350,0,2,18],[72,45971,4600,5050,1,2,28],[72,45974,1000,4900,0,2,18],[72,45975,500,4810,0,2,18],[72,45975,500,4820,0,2,18],[72,45978,1000,4750,0,2,18],[72,45981,3000,4900,1,2,28],[72,45986,2000,5100,0,2,18],[72,45986,2000,5450,1,2,28],[72,45987,1000,6100,0,2,18],[72,45987,1000,6150,1,2,28],[72,45988,1000,6700,0,2,18],[72,45992,1000,6800,1,2,28],[72,45993,500,6500,0,2,18],[72,45995,500,6550,0,2,18],[72,45999,1000,6800,1,2,28],[72,45999,1000,6850,0,2,18],[72,46000,1000,6700,0,2,18],[72,46000,2000,6950,1,2,28],[72,46001,1000,6500,0,2,18],[72,46003,400,6450,0,2,18],[72,46008,500,6150,0,2,18],[72,46009,100,5800,0,2,18],[72,46024,2000,6500,1,2,28],[72,46024,1000,6450,0,2,18],[72,46028,1000,7000,1,2,28],[72,46028,1000,7500,0,2,18],[72,46028,1400,7650,1,2,28],[72,46030,200,7550,0,2,18],[72,46030,200,7600,0,2,18],[72,46030,1000,7800,0,2,18],[72,46044,500,6375,0,2,18],[72,46051,200,4020,0,2,18],[72,46056,500,3900,0,2,18],[72,46058,200,3840,0,2,18],[72,46072,200,4940,0,2,18],[72,46125,200,4500,0,2,18],[72,46126,200,4900,0,2,18],[73,44546,200,885,0,2,19],[73,44565,200,905,1,2,29],[73,45056,1000,785,0,2,19],[73,45058,2000,770,0,2,19],[73,45084,500,740,0,2,19],[73,45086,500,760,1,2,29],[73,45092,500,745,0,2,19],[73,45110,500,725,0,2,19],[73,45127,1000,695,0,2,19],[73,45134,500,655,0,2,19],[73,45167,500,630,0,2,19],[73,45350,500,610,0,2,19],[73,45399,500,665,0,2,19],[73,45401,500,685,1,2,29],[73,45401,500,685,1,2,29],[73,45407,1000,730,1,2,29],[73,45407,500,735,1,2,29],[73,45407,500,735,1,2,29],[73,45408,2000,700,0,2,19],[73,45411,2000,720,1,2,29],[73,45414,1000,710,0,2,19],[73,45433,1000,675,0,2,19],[73,45434,1000,705,1,2,29],[73,45442,500,675,0,2,19],[73,45442,500,690,0,2,19],[73,45449,1000,735,1,2,29],[73,45467,500,755,1,2,29],[73,45467,500,755,1,2,29],[73,45467,500,755,1,2,29],[73,45467,500,755,1,2,29],[73,45474,500,755,0,2,19],[73,45488,2000,740,0,2,19],[73,45496,1000,725,0,2,19],[73,45496,500,725,0,2,19],[73,45498,1500,705,0,2,19],[73,45502,1000,700,0,2,19],[73,45505,1000,735,1,2,29],[73,45505,1000,735,1,2,29],[73,45506,1500,725,0,2,19],[73,45509,1000,695,0,2,19],[73,45519,1500,730,1,2,29],[73,45524,1000,705,0,2,19],[73,45526,1500,700,0,2,19],[73,45540,2000,670,0,2,19],[73,45558,5000,675,0,2,19],[73,45562,1000,660,0,2,19],[73,45582,2000,675,0,2,19],[73,45586,1000,665,0,2,19],[73,45601,1000,590,0,2,19],[73,45693,2000,570,0,2,19],[73,45792,5000,525,0,2,19],[73,45845,2000,488,0,2,19],[73,45870,2000,510,0,2,19],[73,45880,2000,510,1,2,29],[74,44372,100,8350,0,0,19],[74,44375,100,8300,0,0,19],[74,44379,100,8400,1,0,29],[74,44379,100,8375,1,0,29],[75,44474,2000,468,0,2,18],[75,44475,2000,498,1,2,29],[75,45908,10000,645,0,2,18],[75,45912,5000,630,0,2,18],[75,45916,1000,635,0,2,18],[75,45918,5000,630,0,2,18],[75,45922,500,635,0,2,18],[75,45933,1000,625,0,2,18],[75,45937,1000,580,0,2,18],[75,45947,1000,625,0,2,18],[75,45952,1000,625,0,2,18],[75,45971,1000,640,0,2,18],[75,45975,1000,635,0,2,18],[75,45979,2000,630,0,2,18],[75,46007,100,575,0,2,18],[75,46043,1000,590,0,2,18],[75,46050,400,560,0,2,18],[75,46087,100,590,0,2,18],[75,46111,1000,610,0,2,18],[75,46114,32100,650,1,2,29],[76,45496,2000,348,0,2,19],[76,45503,500,326,0,2,19],[76,45505,300,320,0,2,19],[76,45506,500,320,0,2,19],[76,45506,500,322,0,2,19],[76,45509,500,310,0,2,19],[76,45519,500,326,0,2,19],[76,45523,1000,362,0,2,19],[76,45524,1000,350,0,2,19],[76,45530,2000,362,0,2,19],[76,45531,1000,350,0,2,19],[76,45537,2000,360,0,2,19],[76,45539,300,350,0,2,19],[76,45546,1000,334,0,2,19],[76,45561,2000,350,0,2,19],[76,45565,10100,358,1,2,29],[76,45566,5000,356,0,2,19],[76,45566,7000,362,0,2,19],[76,45574,2000,336,0,2,19],[76,45581,1000,342,0,2,19],[76,45586,2500,336,0,2,19],[76,45588,1000,340,0,2,19],[76,45603,1500,306,0,2,19],[76,45607,2000,290,0,2,19],[76,45637,2000,286,0,2,19],[76,45642,1000,276,0,2,19],[76,45659,1000,268,0,2,19],[76,45695,1000,238,0,2,19],[76,45720,200,240,0,2,19],[76,45793,5000,284,0,2,19],[76,45797,10000,298,0,2,19],[76,45828,5000,340,1,2,29],[76,45831,42200,358,1,2,29],[76,46014,10000,352,0,2,19],[76,46020,10000,394,1,2,29],[76,46020,10000,392,0,2,19],[76,46021,10000,398,1,2,29],[76,46021,10000,392,0,2,19],[76,46021,10000,392,0,2,19],[76,46024,20000,406,1,2,29],[76,46024,20000,420,0,2,19],[76,46024,5000,416,0,2,19],[76,46024,17800,430,0,2,19],[76,46024,42800,442,1,2,29],[76,46024,10000,450,0,2,19],[76,46024,10000,432,0,2,19],[76,46024,10000,440,0,2,19],[76,46027,10000,466,0,2,19],[76,46027,10000,452,0,2,19],[76,46027,5000,456,0,2,19],[76,46027,5000,450,0,2,19],[76,46028,1000,428,0,2,19],[76,46029,500,426,0,2,19],[76,46035,1000,406,0,2,19],[76,46052,2000,370,0,2,19],[76,46065,2000,396,0,2,19],[76,46071,1000,406,0,2,19],[76,46077,500,398,0,2,19],[76,46085,1000,408,0,2,19],[77,46059,3500,390,0,2,18],[77,46073,2000,390,0,2,18],[77,46076,5400,390,0,2,18],[77,46084,10900,368,1,2,28],[78,44480,300,2050,0,0,19],[78,44484,300,2270,1,0,29],[78,44522,300,2180,0,0,19],[78,44529,400,2550,0,0,19],[78,44530,100,2140,0,0,19],[78,44530,500,2140,0,0,19],[78,44532,500,2190,1,0,29],[78,44537,300,2180,1,0,29],[78,44537,100,2180,1,0,29],[78,44547,400,2620,1,0,29],[78,44734,500,2760,0,0,19],[78,44741,100,2670,0,0,19],[78,44810,600,2850,1,0,29],[79,46008,300,635,0,2,18],[79,46010,500,900,0,2,18],[79,46015,300,900,1,2,28],[79,46015,2000,920,0,2,18],[79,46024,1000,920,0,2,18],[79,46024,3500,935,1,2,28],[80,44491,300,2960,0,0,19],[80,44491,200,2960,0,0,19],[80,44494,300,2870,0,0,19],[80,44494,200,2870,0,0,19],[80,44503,500,2780,0,0,19],[80,44505,1000,2750,0,0,19],[80,44510,500,2900,1,0,29],[80,44510,1000,2840,1,0,29],[80,44515,1000,2810,0,0,19],[80,44518,1000,2900,1,0,29],[80,44524,300,3070,1,0,29],[80,44525,200,3060,1,0,29],[80,44525,200,3150,1,0,29],[80,44529,300,2980,1,0,29],[80,44531,500,2950,0,0,19],[80,44532,500,2980,1,0,29],[81,43892,1500,113,0,0,18],[81,43893,1500,121,1,0,28],[82,44274,500,1800,0,0,19],[82,44278,300,1740,0,0,19],[82,44320,500,1800,1,0,29],[82,44320,300,1800,1,0,29],[83,43944,100,5000,0,2,18],[83,43951,100,5075,1,2,28],[84,43434,1000,3820,0,0,18],[84,43440,500,3730,0,0,18],[84,43454,200,3700,0,0,18],[84,43454,100,3700,0,0,18],[84,43460,400,3740,0,0,18],[84,43480,1000,3850,1,0,28],[84,43486,500,3980,1,0,28],[84,43486,200,3980,1,0,28],[84,43488,400,4030,1,0,28],[84,43801,100,3950,0,0,18],[84,43808,700,4050,0,0,18],[84,43812,500,3970,0,0,18],[84,43815,200,4000,0,0,18],[84,43815,300,4000,0,0,18],[84,43816,300,3950,0,0,18],[84,43818,100,3920,0,0,18],[84,43822,700,4000,1,0,28],[84,43843,500,4020,1,0,28],[84,43844,100,3940,0,0,18],[84,43844,100,3950,0,0,18],[84,43845,200,3880,0,0,18],[84,43847,500,3800,0,0,18],[84,43847,200,3800,0,0,18],[84,43854,100,3920,1,0,28],[84,43854,100,3920,1,0,28],[84,43857,200,3840,0,0,18],[84,43861,100,3810,0,0,18],[84,43871,300,3830,1,0,28],[84,43878,100,3600,0,0,18],[84,43878,100,3610,0,0,18],[84,43881,100,3610,0,0,18],[84,43887,100,3520,0,0,18],[84,43889,100,3370,0,0,18],[84,43892,100,3490,1,0,28],[84,43892,100,3500,1,0,28],[84,43893,100,3650,1,0,28],[84,43893,100,3650,1,0,28],[84,43893,100,3650,1,0,28],[84,43895,200,3770,0,0,18],[84,43903,200,3310,1,0,28],[84,43907,100,2940,0,0,18],[84,43916,100,3070,1,0,28],[84,43917,300,3180,0,0,18],[84,43922,200,3100,0,0,18],[84,43922,100,3150,0,0,18],[84,43923,100,3050,0,0,18],[84,43923,200,3200,1,0,28],[84,43923,100,3190,1,0,28],[84,43924,100,3190,1,0,28],[84,43928,100,3260,0,0,18],[84,43938,100,3210,1,0,28],[84,43944,300,3160,0,0,18],[84,43945,300,3130,1,0,28],[84,43948,300,3180,1,0,28],[84,43955,400,3320,0,0,18],[84,43956,200,3320,0,0,18],[84,43959,300,3220,0,0,18],[84,43970,400,3290,1,0,28],[84,43970,300,3290,1,0,28],[84,43971,300,3190,0,0,18],[84,43977,300,3250,1,0,28],[84,43978,500,3170,0,0,18],[84,43979,500,3150,0,0,18],[84,43984,500,3250,1,0,28],[84,43984,500,3250,1,0,28],[84,43985,1000,3300,0,0,18],[84,43992,500,3130,0,0,18],[84,43993,300,3080,0,0,18],[84,43998,500,3200,1,0,28],[84,43998,300,3200,1,0,28],[84,44004,500,3220,0,0,18],[84,44025,300,3090,0,0,18],[84,44027,500,3100,0,0,18],[84,44032,300,3050,0,0,18],[84,44035,200,3070,0,0,18],[84,44036,200,3040,0,0,18],[84,44041,300,3000,0,0,18],[84,44042,300,3040,1,0,28],[84,44046,300,2930,0,0,18],[84,44048,300,2980,1,0,28],[84,44049,1900,3000,0,1,18],[84,44054,500,2930,0,1,18],[84,44057,2400,3040,1,1,28],[84,44062,500,3000,0,0,18],[84,44062,1000,3040,0,0,18],[84,44071,400,2950,0,0,18],[84,44109,100,2650,0,0,18],[84,44109,100,2660,0,0,18],[84,44116,100,2730,1,0,28],[84,44116,100,2730,1,0,28],[84,44137,200,2580,0,0,18],[84,44139,200,2620,1,0,28],[84,44144,400,2840,0,0,18],[84,44153,100,3190,0,0,18],[84,44158,1000,3300,1,0,28],[84,44158,500,3300,1,0,28],[84,44158,500,3300,1,0,28],[84,44158,300,3290,1,0,28],[84,44158,300,3290,1,0,28],[84,44158,500,3290,1,0,28],[84,44158,1000,3290,1,0,28],[84,44158,400,3290,1,0,28],[84,44158,400,3300,1,0,28],[84,44158,100,3300,1,0,28],[84,44159,100,3360,1,0,28],[84,44159,200,3360,1,0,28],[84,44159,500,3350,1,0,28],[84,44160,2000,3380,0,0,18],[84,44161,200,3400,1,0,28],[84,44161,200,3400,1,0,28],[84,44161,200,3400,1,0,28],[84,44161,200,3400,1,0,28],[84,44161,200,3400,1,0,28],[84,44161,200,3400,1,0,28],[84,44161,2000,3400,1,0,28],[84,44165,400,3330,0,0,18],[84,44166,300,3200,0,0,18],[84,44166,500,3200,0,1,18],[84,44166,500,3250,1,1,28],[84,44175,1000,3280,0,0,18],[84,44179,1000,3290,0,1,18],[84,44180,1000,3460,1,1,28],[84,44181,300,3610,1,0,28],[84,44181,1000,3610,1,0,28],[84,44183,500,3520,0,0,18],[84,44186,400,3560,1,0,28],[84,44186,500,3540,1,0,28],[84,44187,400,3420,0,0,18],[84,44187,100,3420,0,0,18],[84,44187,100,3490,0,0,18],[84,44187,500,3490,0,0,18],[84,44188,100,3540,1,0,28],[84,44188,100,3540,1,0,28],[84,44195,500,3330,0,0,18],[84,44201,500,3470,1,0,28],[84,44202,800,3390,0,0,18],[84,44207,400,3600,1,0,28],[84,44207,500,3600,1,0,28],[84,44207,800,3600,1,0,28],[84,44207,100,3600,1,0,28],[84,44207,100,3600,1,0,28],[84,44207,100,3600,1,0,28],[84,44207,300,3600,1,0,28],[84,44210,100,3480,0,0,18],[84,44210,100,3480,0,0,18],[84,44210,100,3480,0,0,18],[84,44210,100,3480,0,0,18],[84,44210,500,3480,0,0,18],[84,44218,100,3390,0,0,18],[84,44218,500,3390,0,0,18],[84,44236,300,3230,0,0,18],[84,44237,100,3170,0,0,18],[84,44250,100,3440,1,0,28],[84,44250,500,3430,1,0,28],[84,44250,300,3440,1,0,28],[84,44250,100,3440,1,0,28],[84,44260,300,3330,0,0,18],[84,44265,300,3390,1,0,28],[84,44267,100,3460,1,0,28],[84,44274,200,3390,0,0,18],[84,44274,300,3400,0,1,18],[84,44278,100,3360,0,0,18],[84,44278,100,3360,0,0,18],[84,44278,200,3360,0,1,18],[84,44281,500,3440,1,1,28],[84,44295,200,3370,0,0,18],[84,44354,200,3520,1,0,28],[84,44354,100,3520,1,0,28],[84,44354,200,3530,1,0,28],[84,44354,100,3530,1,0,28],[84,44355,500,3510,1,0,28],[84,44356,200,3340,0,0,18],[84,44357,100,3460,1,0,28],[84,44357,100,3470,1,0,28],[84,44357,200,3400,1,0,28],[84,44362,100,3430,1,0,28],[84,44372,500,3260,0,1,18],[84,44375,400,3203,0,1,18],[84,44377,100,3150,0,1,18],[84,44379,300,3100,0,1,18],[84,44382,700,3036,0,1,18],[84,44386,1100,3160,1,1,28],[84,44396,900,3220,1,1,28],[84,44481,300,3780,0,0,18],[84,44490,300,3830,1,0,28],[84,44522,1000,3800,0,0,18],[84,44523,500,3800,0,0,18],[84,44523,500,3800,0,0,18],[84,44525,1000,4000,1,0,28],[84,44525,500,4000,1,0,28],[84,44526,500,4000,1,0,28],[84,44540,300,4110,0,1,18],[84,44544,400,4080,0,0,18],[84,44544,100,4080,0,0,18],[84,44560,300,4060,0,0,18],[84,44564,400,4120,1,0,28],[84,44565,600,4170,0,0,18],[84,44565,300,4180,1,1,28],[84,44566,1000,4050,0,0,18],[84,44568,300,4170,1,0,28],[84,44568,1000,4170,1,0,28],[84,44579,100,4190,1,0,28],[84,44579,600,4190,1,0,28],[84,44629,500,4440,0,0,18],[84,44629,100,4440,0,0,18],[84,44634,500,4600,1,0,28],[84,44690,200,4330,0,0,18],[84,44719,200,4250,0,0,18],[84,44725,100,3990,0,0,18],[84,44775,100,4310,1,0,28],[84,44792,200,4600,1,0,28],[84,44792,200,4600,1,0,28],[84,44792,100,4600,1,0,28],[84,44939,200,3810,0,0,18],[84,44939,100,3780,0,0,18],[84,44943,200,3900,1,0,28],[84,44943,100,3900,1,0,28],[84,44991,200,3880,0,0,18],[84,45006,200,4070,1,0,28],[84,45016,200,4050,0,0,18],[84,45016,100,4050,0,0,18],[84,45021,200,4130,1,0,28],[84,45022,100,4250,1,0,28],[84,45076,300,4140,0,0,18],[84,45076,300,4150,0,0,18],[84,45082,100,4030,0,0,18],[84,45082,100,4100,1,0,28],[84,45085,200,4140,0,0,18],[84,45086,200,4150,0,0,18],[84,45090,1000,4040,0,0,18],[84,45091,100,4000,0,0,18],[84,45099,500,3950,0,0,18],[84,45104,500,4020,1,0,28],[84,45112,200,3960,0,0,18],[84,45127,200,3850,0,0,18],[84,45134,100,3820,0,0,18],[84,45142,200,3710,0,0,18],[84,45154,100,3760,0,0,18],[84,45154,100,3760,0,0,18],[84,45167,200,3710,0,0,18],[84,45173,100,3780,1,0,28],[84,45173,200,3780,1,0,28],[84,45173,200,3780,1,0,28],[84,45217,200,3740,0,0,18],[84,45264,200,3850,1,0,28],[84,45268,100,3920,1,0,28],[84,45275,300,3930,1,0,28],[84,45278,200,3950,1,0,28],[84,45278,100,3950,1,0,28],[84,45278,300,3950,0,2,18],[84,45287,200,3940,0,2,18],[84,45294,100,3960,0,2,18],[84,45296,100,3900,0,2,18],[84,45307,300,4030,1,2,28],[84,45317,200,3960,0,2,18],[84,45321,300,4020,1,2,28],[84,45324,100,3950,0,2,18],[84,45324,300,3960,0,2,18],[84,45324,100,3980,0,2,18],[84,45327,300,3980,0,2,18],[84,45329,600,4000,1,2,28],[84,45334,200,4020,1,2,28],[84,45335,200,3980,0,2,18],[84,45338,500,4120,1,2,28],[84,45343,300,4070,0,2,18],[84,45344,100,4080,0,2,18],[84,45344,500,4130,0,2,18],[84,45348,100,4070,0,2,18],[84,45349,100,3990,0,2,18],[84,45349,100,4000,0,2,18],[84,45350,200,3950,0,2,18],[84,45350,100,3960,0,2,18],[84,45351,200,3970,0,2,18],[84,45355,200,3920,0,0,18],[84,45358,100,3900,0,2,18],[84,45359,200,3870,0,0,18],[84,45369,100,3950,0,2,18],[84,45373,100,3890,0,2,18],[84,45376,100,3750,0,2,18],[84,45376,500,3870,0,2,18],[84,45377,200,3630,0,0,18],[84,45377,500,3640,0,2,18],[84,45378,500,3520,0,0,18],[84,45378,300,3520,0,2,18],[84,45398,100,3240,0,2,18],[84,45399,100,3200,0,2,18],[84,45400,100,3170,0,2,18],[84,45406,300,3090,0,2,18],[84,45412,300,3170,1,2,28],[84,45414,300,3150,0,2,18],[84,45418,200,3050,0,2,18],[84,45428,200,3010,0,2,18],[84,45429,500,2990,0,2,18],[84,45433,200,2970,0,2,18],[84,45439,300,2820,0,2,18],[84,45444,500,2900,0,2,18],[84,45444,300,2880,0,2,18],[84,45447,300,2980,1,2,28],[84,45474,500,3100,0,2,18],[84,45474,1000,2990,0,2,18],[84,45476,300,3030,0,2,18],[84,45477,500,3000,0,2,18],[84,45477,500,3010,0,2,18],[84,45488,500,3200,0,2,18],[84,45490,800,3260,1,2,28],[84,45495,300,3100,0,2,18],[84,45503,500,2880,0,2,18],[84,45503,500,2900,0,2,18],[84,45503,300,3000,0,2,18],[84,45509,400,2800,0,0,18],[84,45509,500,2780,0,2,18],[84,45509,500,2800,0,2,18],[84,45510,400,2800,0,2,18],[84,45513,500,2830,0,0,18],[84,45531,2400,2990,1,2,28],[84,45536,500,3050,0,2,18],[84,45537,1500,3150,1,2,28],[84,45538,300,3080,0,2,18],[84,45555,2000,3160,1,2,28],[84,45558,1000,3150,0,2,18],[84,45562,300,3070,0,2,18],[84,45567,300,2950,0,0,18],[84,45568,200,2900,0,0,18],[84,45573,400,2910,1,0,28],[84,45573,500,2910,1,0,28],[84,45574,500,2990,0,2,18],[84,45575,500,2950,0,2,18],[84,45579,1000,2900,0,2,18],[84,45588,500,2940,0,2,18],[84,45597,300,2610,0,2,18],[84,45608,1000,2600,0,0,18],[84,45610,300,2550,0,2,18],[84,45649,1000,2640,1,0,28],[84,45658,200,2680,0,2,18],[84,45672,600,2650,1,2,28],[84,45791,300,2570,0,2,18],[84,45875,3100,3030,1,2,28],[84,45884,700,3350,0,2,18],[84,45896,500,3200,0,2,18],[84,45951,1500,3250,1,2,28],[84,45951,3900,3260,1,2,28],[84,45965,3000,3540,1,2,28],[84,45973,1000,3590,1,2,28],[84,45983,500,3480,0,2,18],[84,45986,1000,3660,0,2,18],[84,45988,1000,3610,0,2,18],[84,46024,500,3480,0,2,18],[84,46037,5900,3670,1,2,28],[84,46041,2500,3600,0,2,18],[84,46041,3000,3570,0,2,18],[84,46042,2000,3560,0,2,18],[84,46042,7500,3670,1,2,28],[84,46042,5000,3640,0,2,18],[84,46042,2000,3650,0,2,18],[84,46042,500,3600,0,2,18],[84,46043,7500,3660,1,2,28],[84,46043,2000,3640,0,2,18],[84,46043,1000,3600,0,2,18],[84,46044,2000,3760,0,2,18],[84,46044,5000,3750,1,2,28],[84,46045,1000,3780,0,2,18],[84,46045,1000,3780,0,2,18],[84,46048,2000,3850,1,2,28],[84,46049,1000,3900,0,2,18],[84,46050,800,3730,0,2,18],[84,46051,1800,3170,1,2,28],[84,46051,500,3440,0,2,18],[84,46051,500,3440,0,2,18],[84,46055,1000,3680,1,2,28],[84,46056,700,3520,0,2,18],[84,46056,500,3450,0,2,18],[84,46062,1200,3370,1,2,28],[85,44480,300,2050,0,2,19],[85,44484,300,2270,1,2,29],[85,44522,300,2180,0,2,19],[85,44529,400,2550,0,2,19],[85,44530,100,2140,0,2,19],[85,44530,500,2140,0,2,19],[85,44532,500,2190,1,2,29],[85,44537,300,2180,1,2,29],[85,44537,100,2180,1,2,29],[85,44547,400,2620,1,2,29],[85,44734,500,2760,0,2,19],[85,44741,100,2670,0,2,19],[85,44810,600,2850,1,2,29],[86,43460,100,28800,0,0,18],[86,43461,200,27950,0,0,18],[86,43468,300,27600,0,0,18],[86,43469,300,27250,0,0,18],[86,43469,100,27550,0,0,18],[86,43476,200,28100,1,0,28],[86,43481,100,26700,0,0,18],[86,43481,100,27400,0,0,18],[86,43509,200,25600,0,0,18],[86,43516,200,26000,1,0,28],[86,43522,100,28000,1,0,28],[86,43522,300,27500,1,0,28],[86,43522,100,27900,1,0,28],[86,43522,100,27900,1,0,28],[86,43545,300,27450,1,0,28],[86,43545,100,27450,1,0,28],[86,43598,100,26100,0,0,18],[86,43627,100,26250,1,0,28],[86,43850,100,21600,0,0,18],[86,43851,100,20950,0,0,18],[86,43854,100,20175,0,0,18],[86,43920,100,14425,0,0,18],[86,43921,100,15600,0,0,18],[86,43921,100,15800,1,0,28],[86,43979,100,15200,1,0,28],[86,43980,100,14800,0,0,18],[86,43985,100,17000,1,0,28],[86,43986,100,16800,0,0,18],[86,43990,100,17675,1,0,28],[86,43992,200,17500,0,0,18],[86,43999,200,17800,1,0,28],[86,44039,100,20975,1,0,28],[86,44040,100,22000,1,0,28],[86,44040,100,22000,1,0,28],[86,45086,100,22900,0,0,18],[86,45089,100,23350,1,0,28],[87,43406,200,42325,0,1,19],[87,43416,100,39750,0,1,19],[87,43447,200,43850,1,1,29],[87,43447,100,43850,1,1,29],[87,43483,100,48575,0,1,19],[87,43510,100,48900,1,1,29],[87,43523,200,48900,0,1,19],[87,43528,200,48975,0,1,19],[87,43536,300,48375,0,1,19],[87,43545,200,48900,0,1,19],[87,43549,200,49025,1,1,29],[87,43549,200,49025,1,1,29],[87,43556,300,49225,1,1,29],[87,43556,200,49225,1,1,29],[87,43577,100,48275,0,1,19],[87,43580,100,46425,0,1,19],[87,43580,100,47775,0,1,19],[87,43584,100,45200,0,1,19],[87,43588,100,44400,0,1,19],[87,43592,100,45325,1,1,29],[87,43594,100,43900,0,1,19],[87,43595,100,44075,1,1,29],[87,43636,100,46050,1,1,29],[87,43675,100,43300,0,1,19],[87,43699,100,45175,1,1,29],[87,43704,100,47400,1,1,29],[87,43704,100,47400,1,1,29],[87,43707,100,48200,1,1,29],[87,43832,400,8575,0,1,19],[87,43836,300,8550,0,1,19],[87,43838,200,8275,0,1,19],[87,43852,100,8300,0,1,19],[87,43878,100,7400,0,1,19],[87,43878,100,7400,0,1,19],[87,43880,100,7475,1,1,29],[87,43881,100,7625,1,1,29],[87,43888,100,7025,0,1,19],[87,43894,100,7150,1,1,29],[87,43903,100,7250,1,1,29],[87,43924,100,7075,0,1,19],[87,43949,100,7800,1,1,29],[87,43966,200,8550,1,1,29],[87,43969,200,8400,0,1,19],[87,43971,100,8125,0,1,19],[87,43978,100,8250,1,1,29],[87,43979,400,8075,0,1,19],[87,43985,400,8225,1,1,29],[87,44000,100,8125,0,1,19],[87,44000,100,8150,0,1,19],[87,44007,200,8000,0,1,19],[87,44008,200,7900,0,1,19],[87,44015,200,7900,0,1,19],[87,44020,200,8100,1,1,29],[87,44020,200,8000,1,1,29],[87,44020,200,8000,1,1,29],[87,44022,400,7950,0,1,19],[87,44026,400,8050,1,1,29],[87,44042,100,8400,1,1,29],[87,44042,100,8400,1,1,29],[87,44103,400,8050,1,1,29],[87,44103,300,8025,1,1,29],[87,44103,200,8050,1,1,29],[87,44144,200,7850,0,1,19],[87,44145,500,7800,0,1,19],[87,44147,200,7750,0,1,19],[87,44153,500,7900,1,1,29],[87,44158,200,7775,0,1,19],[87,44159,400,7900,1,1,29],[87,44160,400,7750,0,1,19],[87,44169,100,7625,0,1,19],[87,44173,200,7613,0,1,19],[87,44175,200,7625,0,1,19],[87,44176,200,7500,0,1,19],[87,44180,200,7450,0,1,19],[87,44181,100,7500,0,1,19],[87,44183,100,7425,0,1,19],[87,44187,100,7575,0,1,19],[87,44193,300,7425,0,1,19],[87,44200,100,7425,0,1,19],[87,44203,100,7175,0,1,19],[87,44209,100,7025,0,1,19],[87,44210,100,7025,0,1,19],[87,44260,100,6700,0,1,19],[87,44376,100,5050,0,1,19],[87,44390,100,5150,1,1,29],[87,44734,100,4930,0,1,19],[87,44806,200,4550,0,1,19],[87,44824,200,4650,1,1,29],[87,44832,100,4800,0,1,19],[87,44844,100,4750,0,1,19],[87,44851,100,4840,1,1,29],[87,44886,200,4550,0,1,19],[87,44893,200,4630,1,1,29],[87,45015,200,4300,0,1,19],[87,45019,100,4250,0,1,19],[87,45029,100,4100,0,1,19],[87,45043,200,4440,1,1,29],[87,45043,100,4350,1,1,29],[87,45043,100,4350,1,1,29],[87,45084,2800,4510,0,1,19],[87,45084,1400,4550,1,1,29],[87,45089,200,4610,1,1,29],[87,45091,1000,4445,0,1,19],[87,45093,200,4460,0,1,19],[87,45096,200,4370,0,1,19],[87,45097,300,4300,0,1,19],[87,45098,300,4337,1,1,29],[87,45099,300,4300,0,1,19],[87,45119,100,4230,0,1,19],[87,45132,100,4110,0,1,19],[87,45133,100,3980,0,1,19],[87,45483,100,2960,0,1,19],[87,45845,100,1555,1,1,29],[88,45988,1600,3900,0,2,18],[88,45992,500,3700,0,2,18],[88,45995,1000,3740,0,2,18],[88,46000,3100,3950,1,2,28],[88,46000,1000,4120,0,2,18],[88,46001,500,4250,0,2,18],[88,46001,300,4200,0,2,18],[88,46002,1800,4250,1,2,28],[88,46015,500,3400,0,2,18],[88,46027,500,3330,0,2,18],[88,46027,1000,3530,1,2,28],[88,46028,3000,3530,0,2,18],[88,46028,1000,3480,0,2,18],[88,46031,300,3370,0,2,18],[88,46035,1000,3190,0,2,18],[88,46035,200,3030,0,2,18],[88,46072,200,2520,0,2,18],[89,45275,500,252,0,2,19],[89,45412,500,180,0,2,19],[89,45488,1000,226,1,2,29],[90,44209,4000,617,0,0,19],[90,44215,4000,630,1,0,29]]};
 var CANDLE_DATA={"ticker":"ADMR","settings":{"cap":10000000,"risk":0.02,"maxpos":0.8,"z1l":1950,"z1h":2000,"z2l":1830,"z2h":1880,"brk":2040,"stopInval":1780,"stopBig":1680,"tp1":2150,"tp2":2300,"tp3":2500},"ohlcv":[[46118,1865,1900,1770,1810,70864100],[46119,1820,1830,1710,1715,93855600],[46120,1740,1805,1715,1775,94952700],[46121,1780,1830,1750,1760,62915000],[46122,1765,1795,1765,1780,51148400],[46125,1790,1850,1780,1840,41071200],[46126,1885,1950,1875,1915,79387200],[46127,1955,2020,1925,1955,101871900],[46128,1955,1955,1900,1940,47789400],[46129,1940,1950,1915,1935,30706900],[46132,1935,1940,1900,1905,19839200],[46133,1900,1900,1855,1865,36164700],[46134,1870,1885,1845,1855,25625300],[46135,1875,1880,1815,1845,25486300],[46136,1845,1925,1830,1880,48337900],[46139,1900,1920,1885,1890,92119100],[46140,1875,1885,1840,1845,22469000],[46141,1850,1905,1850,1860,29078600],[46142,1870,1875,1780,1850,44570600],[46146,1870,1990,1830,1910,74095100],[46147,1920,1925,1855,1880,31328700],[46148,1880,1900,1865,1880,20755900],[46149,1885,1895,1845,1870,18433400],[46150,1880,1880,1800,1825,29909500],[46153,1805,1830,1715,1785,69303200],[46154,1785,1865,1765,1825,30827200],[46155,1825,1825,1770,1775,10882900],[46160,1770,1770,1605,1665,56180800],[46161,1685,1700,1450,1530,118628500],[46162,1520,1520,1380,1435,108619700],[46163,1455,1460,1320,1355,63249400],[46164,1340,1490,1275,1480,46833800],[46167,1535,1620,1485,1550,38980100],[46168,1560,1560,1495,1510,15445900],[46171,1550,1670,1525,1530,53493300],[46175,1530,1545,1440,1450,42953000],[46176,1305,1380,1295,1330,6904100],[46177,1305,1380,1265,1315,23599500]],"meta":{"eq":200000000,"rpd":0.0002,"yoy":0.073}};
 
 // ============================================================
@@ -6513,56 +6273,6 @@ function normalizeSekLabels(){
   if(typeof activeSekuritas!=='undefined' && SEK_NORMALIZE[activeSekuritas]) activeSekuritas=SEK_NORMALIZE[activeSekuritas];
   if(changed && typeof saveData==='function') saveData();
   return changed;
-}
-function mut_isoDate(serial){
-  var d=new Date(Date.UTC(1899,11,30)+serial*86400000);
-  return d.getUTCFullYear()+'-'+('0'+(d.getUTCMonth()+1)).slice(-2)+'-'+('0'+d.getUTCDate()).slice(-2);
-}
-function mutToTx(){
-  var codes=MUTASI_DATA.codes, sek=MUTASI_DATA.sek, out=[];
-  MUTASI_DATA.raw.forEach(function(r){
-    var code=codes[r[0]], serial=r[1], lembar=r[2], price=r[3];
-    var isBuy=r[4]===0, skName=sek[r[5]], rate=r[6]/10000;
-    var gross=lembar*price;
-    var fee=Math.round(gross*rate);            // pajak/komisi all-in dari kolom mutasi (sesuai diskon)
-    var net=isBuy?gross+fee:gross-fee;
-    out.push({date:mut_isoDate(serial),type:isBuy?'BUY':'SELL',ticker:code,
-      lot:lembar/100,price:price,gross:gross,komisi:0,tax:fee,net:net,sekuritas:skName,_mutasi:true});
-  });
-  // urut tanggal lama→baru agar id berurutan kronologis
-  out.sort(function(a,b){return a.date.localeCompare(b.date)});
-  return out;
-}
-function registerMutPrices(){
-  var codes=MUTASI_DATA.codes, lastPx={};
-  MUTASI_DATA.raw.forEach(function(r){lastPx[codes[r[0]]]=r[3];});
-  codes.forEach(function(c){
-    if(!DB[c])DB[c]={name:c,base:lastPx[c]||100,sector:'Lainnya',beta:1.0};
-    if(prices[c]==null)prices[c]=lastPx[c]||DB[c].base||100;
-  });
-}
-function importMutasi(force){
-  var has=transactions.some(function(t){return t._mutasi;});
-  if(has && !force) return false;
-  if(force) transactions=transactions.filter(function(t){return !t._mutasi;});
-  var tx=mutToTx();
-  tx.forEach(function(t){t.id=nextTxId++;});
-  transactions=transactions.concat(tx);
-  registerMutPrices();
-  saveData();
-  return true;
-}
-function importMutasiUI(){
-  var n=transactions.filter(function(t){return t._mutasi;}).length;
-  var msg = n>0
-    ? 'Mutasi sudah diimpor ('+fmt(n)+' transaksi). Impor ulang akan mengganti dengan data terbaru dari Mutasi_Final.xlsx. Lanjutkan?'
-    : 'Impor '+fmt(MUTASI_DATA.totals.n)+' transaksi saham historis (2018–2026)?\n\nPajak diambil per-transaksi (termasuk diskon 0,18%/0,28%); program pajak global tidak diterapkan.';
-  if(!confirm(msg)) return;
-  importMutasi(true);
-  if(typeof showSaveStatus==='function') showSaveStatus('✓ '+fmt(MUTASI_DATA.totals.n)+' transaksi mutasi diimpor','#00e5a0');
-  if(typeof updatePrices==='function') updatePrices();
-  renderTransaksi();
-  if(typeof renderDashboard==='function') renderDashboard();
 }
 
 // ============================================================
@@ -7148,41 +6858,6 @@ var sekTaxOverride = {};
 function pphBeliFor(sek){ var o=sekTaxOverride[sek]; return (o&&o.beli!=null)?o.beli:getPphBeli(); }
 function pphJualFor(sek){ var o=sekTaxOverride[sek]; return (o&&o.jual!=null)?o.jual:getPphJual(); }
 
-// ── Impor dividen dari lampiran (XLSX_DATA.dividends) ──
-// total dividen TIDAK menambah saldo RDN (sudah terealisasi untuk beli saham) → tanpa addRdn
-function importDividends(force){
-  if(typeof XLSX_DATA==='undefined' || !XLSX_DATA.dividends) return false;
-  var has=dividends.some(function(d){return d._src==='lampiran';});
-  if(has && !force) return false;
-  if(force) dividends=dividends.filter(function(d){return d._src!=='lampiran';});
-  XLSX_DATA.dividends.forEach(function(e){
-    var total=e.total||0; if(total<=0) return;
-    var avg=e.avg_per_year||total;
-    var years=Math.max(1,Math.round(avg>0?total/avg:1));
-    var per=Math.round(total/years), acc=0, endY=2025;
-    for(var i=0;i<years;i++){
-      var amt=(i===years-1)?(total-acc):per; acc+=amt;
-      var y=endY-(years-1)+i;
-      dividends.push({id:nextDivId++,date:y+'-12-30',ticker:e.code,shares:0,dps:0,
-        gross:amt,tax:0,net:amt,pphRate:0,_src:'lampiran'});
-    }
-  });
-  saveData();
-  return true;
-}
-function importDividendsUI(){
-  var n=dividends.filter(function(d){return d._src==='lampiran';}).length;
-  var tot=(XLSX_DATA.dividends||[]).reduce(function(a,e){return a+(e.total||0)},0);
-  var msg = n>0
-    ? 'Dividen lampiran sudah diimpor. Impor ulang akan mengganti '+n+' catatan dengan data lampiran terbaru. Lanjut?'
-    : 'Impor dividen historis dari lampiran senilai total Rp '+fmt(tot)+' (per emiten, 2018–2026)?\n\nCatatan: nilai ini TIDAK menambah saldo RDN karena sudah terealisasi untuk pembelian saham.';
-  if(!confirm(msg)) return;
-  importDividends(true);
-  if(typeof showSaveStatus==='function') showSaveStatus('✓ Dividen lampiran diimpor (tanpa menambah RDN)');
-  renderDividen();
-  if(typeof renderDashboard==='function') renderDashboard();
-}
-
 // ── Override Komisi per Sekuritas ──
 // sekTaxOverride menyimpan override komisi (beli/jual). PPh Final & Levy = tarif tetap.
 function renderSekTaxPanel(){
@@ -7281,97 +6956,303 @@ function setPeriod(btn,tf){
 }
 
 // ============================================================
-// IMPORT PORTOFOLIO DARI DATA REAL (sekali jalan)
+// IMPORT XLS/XLSX — TRANSAKSI & PORTOFOLIO (Saham, Crypto, ETF, Reksa Dana)
 // ============================================================
-var PORTO_DATA = [
-  {ticker:'GGRM', lot:6,   price:67303, sector:'Konsumer Non-Primer'},
-  {ticker:'BBNI', lot:72,  price:5268,  sector:'Keuangan'},
-  {ticker:'CPRI', lot:90,  price:123,   sector:'Properti'},
-  {ticker:'BBCA', lot:59,  price:8400,  sector:'Keuangan'},
-  {ticker:'BMRI', lot:62,  price:6285,  sector:'Keuangan'},
-  {ticker:'BBRI', lot:215, price:4880,  sector:'Keuangan'},
-  {ticker:'ERAA', lot:400, price:552,   sector:'Konsumer Non-Primer'},
-  {ticker:'UNVR', lot:60,  price:5757,  sector:'Konsumer Primer'},
-  {ticker:'ADRO', lot:102, price:3485,  sector:'Energi'},
-  {ticker:'SIDO', lot:320, price:653,   sector:'Kesehatan'},
-  {ticker:'PGEO', lot:813, price:1527,  sector:'Infrastruktur'},
-  {ticker:'PMMP', lot:38,  price:265,   sector:'Konsumer Primer'},
-  {ticker:'AADI', lot:4,   price:11095, sector:'Energi'},
-  {ticker:'BUMI', lot:503, price:364,   sector:'Energi'},
-  {ticker:'SMDR', lot:690, price:443,   sector:'Infrastruktur'},
-  {ticker:'CDIA', lot:188, price:2015,  sector:'Infrastruktur'},
-  {ticker:'RAJA', lot:30,  price:5803,  sector:'Energi'},
-  {ticker:'ADMR', lot:195, price:2084,  sector:'Energi'},
-  {ticker:'DEWA', lot:75,  price:532,   sector:'Energi'},
-  {ticker:'PTRO', lot:5,   price:5619,  sector:'Energi'},
-  {ticker:'MBMA', lot:87,  price:805,   sector:'Barang Baku'},
-  {ticker:'WIFI', lot:57,  price:3406,  sector:'Konsumer Non-Primer'},
-  {ticker:'ARCI', lot:223, price:1939,  sector:'Barang Baku'},
-];
+var XLS_TYPE = 'saham';
+var XLS_ROWS = []; // parsed valid rows ready to sync
+var XLS_ERRORS = []; // row-level errors (skipped)
 
-function importPortfolioData(){
-  if(localStorage.getItem('porto_imported_v1')) return; // sudah pernah diimpor
-  var today2 = new Date().toISOString().slice(0,10);
-  var sec = 'Stockbit';
-  // Pastikan semua ticker ada di DB dengan sektor yang benar
-  PORTO_DATA.forEach(function(p){
-    DB[p.ticker]={name:p.ticker, base:p.price, sector:p.sector||'Lainnya', beta:1.0};
-    prices[p.ticker] = p.price;
-  });
-  // Tambahkan transaksi BUY — bypass saveData per-item untuk efisiensi
-  var _origSave = window._txNoSave; // flag sementara
-  PORTO_DATA.forEach(function(p){
-    var isBuy=true;
-    var gross=p.lot*100*p.price;
-    var c=calcTxComponents(gross,isBuy,sec);
-    var txId=nextTxId++;
-    transactions.push({id:txId,date:today2,type:'BUY',ticker:p.ticker,lot:p.lot,price:p.price,
-      gross:gross,komisi:c.komisi,ppn:c.ppn,levy:c.levy,pph:c.pph,
-      tax:c.ppn+c.levy+c.pph,net:c.net,sekuritas:sec});
-    rdnBalance+=-c.net;
-    rdnMutations.push({id:nextRdnId++,date:today2,type:'BUY',
-      ket:'Beli '+p.lot+' lot '+p.ticker+' @ Rp '+fmt(p.price),
-      amount:-c.net,balance:rdnBalance,sekuritas:sec,linkedTxId:txId});
-  });
-  localStorage.setItem('porto_imported_v1','1');
-  saveData();
-  console.log('✅ Porto import selesai: '+PORTO_DATA.length+' emiten, total lot: '+
-    PORTO_DATA.reduce(function(a,p){return a+p.lot;},0));
+var XLS_SPECS = {
+  saham: {
+    label: 'Transaksi Saham',
+    cols: ['Tanggal','Jenis','Ticker','Lot','Harga','Sekuritas'],
+    example: ['2025-01-15','BUY','BBCA','10','9500','Mirae Asset'],
+    desc: 'Kolom: <b>Tanggal</b> (YYYY-MM-DD), <b>Jenis</b> (BUY/SELL), <b>Ticker</b> (kode saham, contoh BBCA), <b>Lot</b> (1 lot = 100 lembar), <b>Harga</b> (harga per lembar, Rp), <b>Sekuritas</b> (nama sekuritas, opsional — default ke sekuritas aktif).'
+  },
+  crypto: {
+    label: 'Transaksi Crypto',
+    cols: ['Tanggal','Jenis','Coin','Jumlah','Harga IDR'],
+    example: ['2025-01-15','BUY','BTC','0.001','1500000000'],
+    desc: 'Kolom: <b>Tanggal</b> (YYYY-MM-DD), <b>Jenis</b> (BUY/SELL), <b>Coin</b> (kode koin, contoh BTC, ETH, ADA), <b>Jumlah</b> (qty koin, boleh desimal), <b>Harga IDR</b> (harga per koin dalam Rupiah, sudah termasuk biaya akan dihitung otomatis).'
+  },
+  etf: {
+    label: 'Transaksi ETF (USD)',
+    cols: ['Tanggal','Jenis','Ticker','Lembar','Harga USD','Kurs USD/IDR'],
+    example: ['2025-01-15','BUY','VOO','2','450','15800'],
+    desc: 'Kolom: <b>Tanggal</b> (YYYY-MM-DD), <b>Jenis</b> (BUY/SELL), <b>Ticker</b> (kode ETF US, contoh VOO, SPY), <b>Lembar</b> (jumlah lembar/shares), <b>Harga USD</b> (harga per lembar dalam USD), <b>Kurs USD/IDR</b> (opsional — default ke kurs USD/IDR saat ini).'
+  },
+  rd: {
+    label: 'Transaksi Reksa Dana',
+    cols: ['Tanggal','Jenis','Kode Produk','Nominal (Rp)','NAB per Unit'],
+    example: ['2025-01-15','BELI','BIBIT-SAHAM','1000000','2850'],
+    desc: 'Kolom: <b>Tanggal</b> (YYYY-MM-DD), <b>Jenis</b> (BELI/JUAL), <b>Kode Produk</b> (lihat daftar kode di bawah, atau buat kode baru bebas — produk baru otomatis ditambahkan ke katalog), <b>Nominal</b> (jumlah dana dalam Rupiah), <b>NAB per Unit</b> (Nilai Aktiva Bersih per unit saat transaksi).'
+  }
+};
+
+function xlsKnownRdCodes(){
+  return Object.keys(RD_DB).join(', ');
 }
 
-// ============================================================
-// INIT
-// ============================================================
+function openXlsModal(type){
+  XLS_TYPE = type||'saham';
+  XLS_ROWS = []; XLS_ERRORS = [];
+  document.querySelectorAll('.xls-tab-btn').forEach(function(b){
+    b.style.color = (b.getAttribute('data-type')===XLS_TYPE) ? 'var(--accent)' : '';
+  });
+  var spec = XLS_SPECS[XLS_TYPE];
+  var desc = spec.desc;
+  if(XLS_TYPE==='rd'){
+    desc += '<br><br><span style="color:var(--text3)">Kode produk yang sudah dikenal: '+xlsKnownRdCodes()+'</span>';
+  }
+  el('xls-desc').innerHTML = desc;
+  el('xls-file-input').value = '';
+  el('xls-file-name').textContent = '';
+  el('xls-preview').style.display = 'none';
+  el('xls-preview-table').innerHTML = '';
+  el('xls-warnings').innerHTML = '';
+  el('xls-sync-btn').disabled = true;
+  var m = el('xls-modal');
+  m.style.display = 'flex';
+}
+function closeXlsModal(){
+  el('xls-modal').style.display = 'none';
+}
+function xlsSwitchType(type){
+  openXlsModal(type);
+}
+
+// ── Generate & download an empty template for the active type ──
+function xlsDownloadTemplate(){
+  var spec = XLS_SPECS[XLS_TYPE];
+  var ws = XLSX.utils.aoa_to_sheet([spec.cols, spec.example]);
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Template');
+  XLSX.writeFile(wb, 'template_'+XLS_TYPE+'.xlsx');
+}
+
+// ── Helper: parse various date formats (string, Excel serial number) into YYYY-MM-DD ──
+function xlsParseDate(v){
+  if(v==null || v==='') return null;
+  if(typeof v === 'number'){
+    // Excel serial date
+    var d = new Date(Math.round((v - 25569) * 86400 * 1000));
+    if(isNaN(d.getTime())) return null;
+    return d.toISOString().slice(0,10);
+  }
+  var s = String(v).trim();
+  // Try YYYY-MM-DD or YYYY/MM/DD
+  var m = s.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+  if(m) return m[1]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[3]).slice(-2);
+  // Try DD-MM-YYYY or DD/MM/YYYY
+  m = s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/);
+  if(m) return m[3]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[1]).slice(-2);
+  var d2 = new Date(s);
+  if(!isNaN(d2.getTime())) return d2.toISOString().slice(0,10);
+  return null;
+}
+function xlsParseNum(v){
+  if(v==null || v==='') return NaN;
+  if(typeof v === 'number') return v;
+  var s = String(v).replace(/[^0-9.\-]/g,'');
+  return s===''?NaN:parseFloat(s);
+}
+
+// ── File upload handler: parse with SheetJS, validate, show preview ──
+function xlsHandleFile(evt){
+  var file = evt.target.files && evt.target.files[0];
+  if(!file) return;
+  el('xls-file-name').textContent = file.name;
+  var reader = new FileReader();
+  reader.onload = function(e){
+    try {
+      var data = new Uint8Array(e.target.result);
+      var wb = XLSX.read(data, {type:'array', cellDates:false});
+      var firstSheet = wb.SheetNames[0];
+      var ws = wb.Sheets[firstSheet];
+      var rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+      xlsValidateRows(rows);
+    } catch(err){
+      el('xls-warnings').innerHTML = '<span style="color:var(--red)">Gagal membaca file: '+err.message+'</span>';
+      el('xls-sync-btn').disabled = true;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ── Validate rows according to active type, build XLS_ROWS + XLS_ERRORS ──
+function xlsValidateRows(rows){
+  XLS_ROWS = []; XLS_ERRORS = [];
+  if(!rows || rows.length < 1){
+    el('xls-warnings').innerHTML = '<span style="color:var(--red)">File kosong atau format tidak dikenali.</span>';
+    el('xls-sync-btn').disabled = true;
+    return;
+  }
+  // Detect header row: skip first row if it looks like a header (non-date in col0, matches label)
+  var startIdx = 0;
+  var firstCell = String(rows[0][0]||'').trim().toLowerCase();
+  if(firstCell==='tanggal' || firstCell==='date') startIdx = 1;
+
+  var dataRows = rows.slice(startIdx).filter(function(r){ return r.some(function(c){return c!=='' && c!=null;}); });
+
+  for(var i=0;i<dataRows.length;i++){
+    var r = dataRows[i];
+    var rowNum = startIdx+i+1; // 1-indexed, matches spreadsheet row
+    try {
+      if(XLS_TYPE==='saham'){
+        var date=xlsParseDate(r[0]), type=String(r[1]||'').trim().toUpperCase(),
+            ticker=String(r[2]||'').trim().toUpperCase(), lot=xlsParseNum(r[3]), price=xlsParseNum(r[4]),
+            sek=String(r[5]||'').trim()||activeSekuritas;
+        if(!date) throw 'Tanggal tidak valid';
+        if(type!=='BUY'&&type!=='SELL') throw 'Jenis harus BUY atau SELL';
+        if(!ticker) throw 'Ticker kosong';
+        if(!(lot>0)) throw 'Lot harus > 0';
+        if(!(price>0)) throw 'Harga harus > 0';
+        if(price < 50) throw 'Harga terlalu kecil (cek apakah ini harga per lembar, bukan per lot)';
+        XLS_ROWS.push({date:date,type:type,ticker:ticker,lot:lot,price:price,sekuritas:sek,_row:rowNum});
+      } else if(XLS_TYPE==='crypto'){
+        var date=xlsParseDate(r[0]), type=String(r[1]||'').trim().toUpperCase(),
+            coin=String(r[2]||'').trim().toUpperCase(), qty=xlsParseNum(r[3]), priceIdr=xlsParseNum(r[4]);
+        if(!date) throw 'Tanggal tidak valid';
+        if(type!=='BUY'&&type!=='SELL') throw 'Jenis harus BUY atau SELL';
+        if(!coin) throw 'Coin kosong';
+        if(!(qty>0)) throw 'Jumlah harus > 0';
+        if(!(priceIdr>0)) throw 'Harga IDR harus > 0';
+        XLS_ROWS.push({date:date,type:type,coin:coin,qty:qty,priceIdr:priceIdr,_row:rowNum});
+      } else if(XLS_TYPE==='etf'){
+        var date=xlsParseDate(r[0]), type=String(r[1]||'').trim().toUpperCase(),
+            ticker=String(r[2]||'').trim().toUpperCase(), shares=xlsParseNum(r[3]), priceUSD=xlsParseNum(r[4]),
+            kurs=xlsParseNum(r[5]);
+        if(!date) throw 'Tanggal tidak valid';
+        if(type!=='BUY'&&type!=='SELL') throw 'Jenis harus BUY atau SELL';
+        if(!ticker) throw 'Ticker kosong';
+        if(!(shares>0)) throw 'Lembar harus > 0';
+        if(!(priceUSD>0)) throw 'Harga USD harus > 0';
+        if(!(kurs>0)) kurs = usdIdr;
+        XLS_ROWS.push({date:date,type:type,ticker:ticker,shares:shares,priceUSD:priceUSD,kurs:kurs,_row:rowNum});
+      } else if(XLS_TYPE==='rd'){
+        var date=xlsParseDate(r[0]), typeRaw=String(r[1]||'').trim().toUpperCase(),
+            code=String(r[2]||'').trim().toUpperCase(), amount=xlsParseNum(r[3]), nab=xlsParseNum(r[4]);
+        if(!date) throw 'Tanggal tidak valid';
+        var type = (typeRaw==='BUY'||typeRaw==='BELI')?'BELI':(typeRaw==='SELL'||typeRaw==='JUAL')?'JUAL':null;
+        if(!type) throw 'Jenis harus BELI/BUY atau JUAL/SELL';
+        if(!code) throw 'Kode produk kosong';
+        if(!(amount>0)) throw 'Nominal harus > 0';
+        if(!(nab>0)) throw 'NAB per unit harus > 0';
+        XLS_ROWS.push({date:date,type:type,code:code,amount:amount,nab:nab,_row:rowNum});
+      }
+    } catch(errMsg){
+      XLS_ERRORS.push({row:rowNum, msg:errMsg, raw:r});
+    }
+  }
+
+  xlsRenderPreview();
+}
+
+function xlsRenderPreview(){
+  var spec = XLS_SPECS[XLS_TYPE];
+  var table = el('xls-preview-table');
+  var thead = '<thead><tr><th>#</th>'+spec.cols.map(function(c){return '<th>'+c+'</th>';}).join('')+'<th>Status</th></tr></thead>';
+  var rowsHtml = '';
+  XLS_ROWS.forEach(function(row){
+    var cells;
+    if(XLS_TYPE==='saham') cells=[row.date,row.type,row.ticker,row.lot,fmt(row.price),row.sekuritas];
+    else if(XLS_TYPE==='crypto') cells=[row.date,row.type,row.coin,row.qty,fmt(row.priceIdr)];
+    else if(XLS_TYPE==='etf') cells=[row.date,row.type,row.ticker,row.shares,row.priceUSD,fmt(row.kurs)];
+    else cells=[row.date,row.type,row.code,fmt(row.amount),fmt(row.nab)];
+    rowsHtml += '<tr><td class="mono">'+row._row+'</td>'+cells.map(function(c){return '<td class="mono">'+c+'</td>';}).join('')+'<td><span class="badge b-up" style="font-size:9px">OK</span></td></tr>';
+  });
+  XLS_ERRORS.forEach(function(e){
+    var cells = spec.cols.map(function(_,i){return e.raw[i]!=null?e.raw[i]:'';});
+    rowsHtml += '<tr style="opacity:.6"><td class="mono">'+e.row+'</td>'+cells.map(function(c){return '<td class="mono">'+c+'</td>';}).join('')+'<td><span class="badge b-dn" style="font-size:9px" title="'+e.msg+'">ERROR</span></td></tr>';
+  });
+  table.innerHTML = thead + '<tbody>'+(rowsHtml||'<tr><td colspan="'+(spec.cols.length+2)+'" style="text-align:center;color:var(--text3);padding:10px">Tidak ada baris data</td></tr>')+'</tbody>';
+  el('xls-preview').style.display = 'block';
+
+  var warn = '';
+  if(XLS_ERRORS.length>0){
+    warn += '<div>⚠ '+XLS_ERRORS.length+' baris error akan dilewati (lihat kolom Status):</div><ul style="margin:4px 0 0 18px;padding:0">';
+    XLS_ERRORS.slice(0,8).forEach(function(e){ warn += '<li>Baris '+e.row+': '+e.msg+'</li>'; });
+    if(XLS_ERRORS.length>8) warn += '<li>... dan '+(XLS_ERRORS.length-8)+' lainnya</li>';
+    warn += '</ul>';
+  }
+  if(XLS_TYPE==='rd'){
+    var newCodes = {};
+    XLS_ROWS.forEach(function(r){ if(!RD_DB[r.code]) newCodes[r.code]=1; });
+    var nc = Object.keys(newCodes);
+    if(nc.length){
+      warn += '<div style="margin-top:6px">ℹ Kode produk baru akan ditambahkan ke katalog dengan nama default: '+nc.join(', ')+'. Anda bisa edit nama/jenisnya nanti di kode.</div>';
+    }
+  }
+  if(XLS_TYPE==='saham'){
+    var newTickers = {};
+    XLS_ROWS.forEach(function(r){ if(!DB[r.ticker]) newTickers[r.ticker]=1; });
+    var nt = Object.keys(newTickers);
+    if(nt.length){
+      warn += '<div style="margin-top:6px">ℹ Ticker baru akan ditambahkan ke katalog DB: '+nt.join(', ')+' (harga acuan diisi dari harga transaksi).</div>';
+    }
+  }
+  el('xls-warnings').innerHTML = warn;
+  el('xls-sync-btn').disabled = (XLS_ROWS.length===0);
+}
+
+// ── Sync valid rows into the journal using existing add* functions ──
+function xlsSync(){
+  if(!XLS_ROWS.length) return;
+  var n = XLS_ROWS.length;
+  if(XLS_TYPE==='saham'){
+    XLS_ROWS.forEach(function(r){
+      if(!DB[r.ticker]){
+        DB[r.ticker] = {name:r.ticker, base:r.price, sector:'Lainnya', beta:1.0};
+      }
+      prices[r.ticker] = r.price;
+      addTx(r.date, r.type, r.ticker, r.lot, r.price, r.sekuritas);
+    });
+    if(typeof updatePrices==='function') updatePrices();
+    renderTransaksi();
+    if(typeof renderDashboard==='function') renderDashboard();
+  } else if(XLS_TYPE==='crypto'){
+    XLS_ROWS.forEach(function(r){
+      addCryptoTx(r.date, r.type, r.coin, r.qty, r.priceIdr);
+      if(!CRYPTO_DB[r.coin]){
+        CRYPTO_DB[r.coin] = {name:r.coin, category:'Lainnya', baseIDR:r.priceIdr, color:'#0033ad', icon:r.coin[0]};
+      }
+      cryptoPrices[r.coin] = r.priceIdr;
+    });
+    saveData();
+    if(typeof renderCrypto==='function') renderCrypto();
+    if(typeof renderDashboard==='function') renderDashboard();
+  } else if(XLS_TYPE==='etf'){
+    XLS_ROWS.forEach(function(r){
+      addEtfTx(r.date, r.type, r.ticker, r.shares, r.priceUSD, r.kurs);
+      etfPrices[r.ticker] = r.priceUSD;
+    });
+    saveData();
+    if(typeof renderEtf==='function') renderEtf();
+    if(typeof renderDashboard==='function') renderDashboard();
+  } else if(XLS_TYPE==='rd'){
+    XLS_ROWS.forEach(function(r){
+      if(!RD_DB[r.code]){
+        RD_DB[r.code] = {name:r.code, mi:'—', type:'Campuran', baseNAB:r.nab, risk:'Sedang', color:'#a78bfa'};
+      }
+      addRdTx(r.date, r.type, r.code, r.amount, r.nab);
+      rdNAB[r.code] = r.nab;
+    });
+    saveData();
+    if(typeof renderReksaDana==='function') renderReksaDana();
+    if(typeof renderDashboard==='function') renderDashboard();
+  }
+  if(typeof showSaveStatus==='function') showSaveStatus('✓ '+n+' baris berhasil disinkron ke jurnal','#00e5a0');
+  closeXlsModal();
+}
+
+
 document.addEventListener('DOMContentLoaded',function(){
-  var hasData = loadData();
+  loadData();
   normalizeSekLabels();
   if(typeof aiUpdateKeyBtn==='function') aiUpdateKeyBtn();
   loadTaxSettings();
   loadCashAccounts();
   loadHiddenMetrics();
-
-  // ── Import portofolio real (sekali jalan, jika belum ada data) ──
-  importPortfolioData();
-
-  // ── Mulai kosong — semua transaksi diisi manual ──
-  // Selalu pastikan DB & RD_DB terisi dari XLSX (hanya metadata, bukan transaksi)
-  var sectorMap={'Financials':'Keuangan','Energy':'Energi','Infrastructures':'Infrastruktur',
-    'Consumer Non-Cyclicals':'Konsumer Primer','Basic Materials':'Barang Baku',
-    'Consumer Cyclicals':'Konsumer Non-Primer','Healthcare':'Kesehatan',
-    'Transportation & Logistic':'Infrastruktur','Properties':'Properti'};
-  XLSX_DATA.stocks.forEach(function(s){
-    if(!DB[s.code]){
-      DB[s.code]={name:s.code,base:s.price||s.avg||100,sector:sectorMap[s.sector]||s.sector||'Lainnya',beta:1.0};
-    }
-    if(s.price>0) prices[s.code]=s.price;
-  });
-  // RD metadata (nama produk, kategori) — tanpa transaksi aktif
-  loadSampleRd();
-  if(!hasData){
-    importMutasi(false); // muat transaksi historis Mutasi_Final.xlsx (pajak per-baris, termasuk diskon)
-    importDividends(false); // muat dividen lampiran (tanpa menambah saldo RDN)
-    saveData();
-  }
 
   updatePrices();
   updateCryptoPrices();
@@ -7395,6 +7276,8 @@ document.addEventListener('DOMContentLoaded',function(){
   el('m-close').onclick=closeModal;
   el('modal').onclick=function(e){if(e.target===el('modal'))closeModal()};
   el('backup-modal').onclick=function(e){if(e.target===el('backup-modal'))closeBackupModal()};
+  el('xls-modal').onclick=function(e){if(e.target===el('xls-modal'))closeXlsModal()};
+  el('xls-modal').onclick=function(e){if(e.target===el('xls-modal'))closeXlsModal()};
   el('tx-search').oninput=renderTransaksi;
   el('tx-filter').onchange=renderTransaksi;
   el('rdn-filter').onchange=renderRdn;
@@ -7440,12 +7323,15 @@ var FS_UNIV=[
   {t:'WIFI',n:'Solusi Sinergi Digital',s:'Teknologi',cap:48},
 ];
 
-// juga tambahkan saham dari portofolio real
-XLSX_DATA.stocks.forEach(function(s){
-  if(!FS_UNIV.find(function(u){return u.t===s.code})){
-    FS_UNIV.push({t:s.code,n:s.code,s:s.sector||'IHSG',cap:Math.round(s.amount/1e9)||1});
-  }
-});
+// juga tambahkan saham dari portofolio aktif (manual input)
+(function(){
+  var porto = (typeof getPortfolio==='function') ? getPortfolio() : [];
+  porto.forEach(function(p){
+    if(!FS_UNIV.find(function(u){return u.t===p.ticker})){
+      FS_UNIV.push({t:p.ticker,n:p.ticker,s:(DB[p.ticker]&&DB[p.ticker].sector)||'IHSG',cap:1});
+    }
+  });
+})();
 
 var FS_G={tk:'BBCA',days:30,data:null,a:null};
 var FS_WL=[];
@@ -7473,9 +7359,9 @@ function fsMkBdg(sig,sm){
 // ── data engine ──
 function fsGenData(tk,days){
   var s=fsSd(tk),base=1000+fsSr(s)*14000,vol=5e6+fsSr(s+1)*50e6,price=base,obv=0,ad=0,data=[];
-  // use real price as base if available
-  var realStk=XLSX_DATA.stocks.find(function(x){return x.code===tk});
-  if(realStk&&realStk.price>0) base=realStk.price, price=base;
+  // use real/live price as base if available
+  var realPx = (typeof prices!=='undefined'&&prices[tk]) || (DB[tk]&&DB[tk].base) || 0;
+  if(realPx>0) base=realPx, price=base;
   var bias=fsSr(s+99)>0.5?0.0003:-0.0002;
   for(var i=0;i<days;i++){
     var r=fsSr(s*i+i*7+13),r2=fsSr(s*i+i*3+7),r3=fsSr(s*i+i*11+29),r4=fsSr(s*i+i*17+41);
@@ -8183,9 +8069,11 @@ function fsInit(){
     var a=fsProcess(data);
     return Object.assign({},u,{data:data,a:a});
   });
-  XLSX_DATA.stocks.slice(0,6).forEach(function(s){
-    var info=FS_UNIV.find(function(u){return u.t===s.code;})||{t:s.code,n:s.code,s:s.sector||'IHSG',cap:0};
-    var data=fsGenData(s.code,60);var a=fsProcess(data);
+  // Watchlist awal: ambil dari portofolio aktif (jika ada), maksimal 6
+  var porto = (typeof getPortfolio==='function') ? getPortfolio() : [];
+  porto.slice(0,6).forEach(function(p){
+    var info=FS_UNIV.find(function(u){return u.t===p.ticker;})||{t:p.ticker,n:p.ticker,s:(DB[p.ticker]&&DB[p.ticker].sector)||'IHSG',cap:0};
+    var data=fsGenData(p.ticker,60);var a=fsProcess(data);
     FS_WL.push(Object.assign({},info,{data:data,a:a}));
   });
   fsBuildQaChips();
